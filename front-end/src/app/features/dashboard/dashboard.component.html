@@ -1,0 +1,326 @@
+<!-- En-tête -->
+<div class="dashboard-container">
+  <div class="page-header-bar">
+    <div>
+      <h1>Vue d'ensemble</h1>
+      <div class="sub">Système de Management de la Qualité — ISO 21001</div>
+    </div>
+    
+  </div>
+
+  <!-- Loader -->
+  <div class="loader-overlay" *ngIf="loading">
+    <div class="loader"></div>
+  </div>
+
+  <!-- Cartes de statistiques -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue">
+        <svg
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+          />
+        </svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">
+          {{ stats.processusActifs }}/{{ stats.totalProcessus }}
+        </div>
+        <div class="stat-label">Processus actifs</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">
+        <svg
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          />
+        </svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">
+          {{ stats.documentsValides }}/{{ stats.totalDocuments }}
+        </div>
+        <div class="stat-label">Documents validés</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon orange">
+        <svg
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">{{ stats.ncOuvertes }}/{{ stats.totalNC }}</div>
+        <div class="stat-label">NC ouvertes</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon purple">
+        <svg
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <path
+            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+          />
+        </svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value">
+          {{ stats.indicateursActifs }}/{{ stats.totalIndicateurs }}
+        </div>
+        <div class="stat-label">Indicateurs actifs</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section Processus clés -->
+  <div class="table-wrap">
+    <div class="table-toolbar">
+      <span class="section-title">📊 Processus clés</span>
+      <div class="global-conformity" *ngIf="stats.tauxConformiteGlobal > 0">
+        <span class="conformity-label">Conformité globale :</span>
+        <span
+          class="conformity-value"
+          [style.color]="getScoreColor(stats.tauxConformiteGlobal)"
+        >
+          {{ stats.tauxConformiteGlobal }}%
+        </span>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn-link" routerLink="/processus">Voir tout →</button>
+      </div>
+    </div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Processus</th>
+          <th>Type</th>
+          <th>Conformité</th>
+          <th>Statut</th>
+          <th>Pilote</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let process of processes">
+          <td>
+            <div class="cell-title">{{ process.name }}</div>
+            <div class="cell-sub">{{ process.code }}</div>
+          </td>
+          <td>
+            <span
+              class="badge type-badge"
+              [ngClass]="'type-' + process.type.toLowerCase()"
+            >
+              {{ getProcessTypeShort(process.type) }}
+            </span>
+          </td>
+          <td>
+            <div class="progress-bar">
+              <div
+                class="progress-fill"
+                [style.width.%]="process.conformityScore"
+                [style.background]="getScoreColor(process.conformityScore)"
+              ></div>
+            </div>
+            <div
+              class="progress-value"
+              [style.color]="getScoreColor(process.conformityScore)"
+            >
+              {{ process.conformityScore }}%
+            </div>
+          </td>
+          <td>
+            <span
+              class="badge status-badge"
+              [ngClass]="getStatusClass(process.statut)"
+            >
+              {{ getStatusIcon(process.statut) }} {{ process.statut }}
+            </span>
+          </td>
+          <td class="pilot-cell">
+            <div
+              class="pilot-avatar"
+              [style.background]="getPilotColor(process.pilot)"
+            >
+              {{ getInitiales(process.pilot) }}
+            </div>
+            <span>{{ process.pilot }}</span>
+          </td>
+        </tr>
+        <tr *ngIf="processes.length === 0 && !loading">
+          <td colspan="5" class="empty-row">Aucun processus trouvé.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Section Non-Conformités ouvertes -->
+  <div class="table-wrap">
+    <div class="table-toolbar">
+      <span class="section-title">⚠️ Non-Conformités ouvertes</span>
+      <div class="toolbar-actions">
+        <button class="btn-link" routerLink="/non-conformites">
+          Voir tout →
+        </button>
+      </div>
+    </div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Référence</th>
+          <th>Description</th>
+          <th>Processus</th>
+          <th>Priorité</th>
+          <th>Avancement</th>
+          <th>Responsable</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let nc of nonConformities">
+          <td class="ref-cell">{{ nc.ref }}</td>
+          <td>
+            <div class="cell-title">
+              {{ nc.description | slice: 0 : 60
+              }}{{ nc.description.length > 60 ? "..." : "" }}
+            </div>
+          </td>
+          <td>
+            <span class="badge proc-badge">{{ nc.processCode }}</span>
+          </td>
+          <td>
+            <span
+              class="badge priority-badge"
+              [ngClass]="getPriorityClass(nc.priority)"
+            >
+              {{ getPriorityIcon(nc.priority) }} {{ nc.priority }}
+            </span>
+          </td>
+          <td>
+            <div class="progress-bar small">
+              <div
+                class="progress-fill"
+                [style.width.%]="nc.progress"
+                [style.background]="getProgressColor(nc.progress)"
+              ></div>
+            </div>
+            <span class="progress-text">{{ nc.progress }}%</span>
+          </td>
+          <td class="responsible-cell">{{ nc.responsible }}</td>
+          <td class="date-cell">{{ formatDate(nc.dateDetection) }}</td>
+        </tr>
+        <tr *ngIf="nonConformities.length === 0 && !loading">
+          <td colspan="7" class="empty-row">
+            ✅ Aucune non-conformité ouverte.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Section Documents récents & Indicateurs alertes (2 colonnes) -->
+  <div class="two-columns">
+    <!-- Documents récents -->
+    <div class="table-wrap">
+      <div class="table-toolbar">
+        <span class="section-title">📄 Documents récents</span>
+        <div class="toolbar-actions">
+          <button class="btn-link" routerLink="/documents">Voir tout →</button>
+        </div>
+      </div>
+      <table class="data-table compact">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Titre</th>
+            <th>Version</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let doc of documentsRecents">
+            <td class="code-cell">{{ doc.code }}</td>
+            <td>
+              <div class="cell-title">
+                {{ doc.titre | slice: 0 : 40
+                }}{{ doc.titre.length > 40 ? "..." : "" }}
+              </div>
+            </td>
+            <td class="version-cell">{{ doc.version || "—" }}</td>
+            <td>
+              <span
+                class="badge status-badge small"
+                [ngClass]="getStatusClass(doc.statut)"
+              >
+                {{ getStatusIcon(doc.statut) }} {{ doc.statut }}
+              </span>
+            </td>
+          </tr>
+          <tr *ngIf="documentsRecents.length === 0 && !loading">
+            <td colspan="4" class="empty-row">Aucun document récent.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Indicateurs en alerte -->
+    <div class="table-wrap">
+      <div class="table-toolbar">
+        <span class="section-title">📈 Indicateurs hors cible</span>
+        <div class="toolbar-actions">
+          <button class="btn-link" routerLink="/indicateurs">
+            Voir tout →
+          </button>
+        </div>
+      </div>
+      <table class="data-table compact">
+        <thead>
+          <tr>
+            <th>Indicateur</th>
+            <th>Valeur</th>
+            <th>Cible</th>
+            <th>Écart</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let ind of indicateursAlertes">
+            <td>
+              <div class="cell-title">{{ ind.code }}</div>
+              <div class="cell-sub">{{ ind.nom | slice: 0 : 25 }}</div>
+            </td>
+            <td class="value-cell">{{ ind.valeur }} {{ ind.unite }}</td>
+            <td class="target-cell">{{ ind.cible }} {{ ind.unite }}</td>
+            <td class="gap-cell" style="color: #ef4444">-{{ ind.ecart }}%</td>
+          </tr>
+          <tr *ngIf="indicateursAlertes.length === 0 && !loading">
+            <td colspan="4" class="empty-row">
+              ✅ Tous les indicateurs sont conformes.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

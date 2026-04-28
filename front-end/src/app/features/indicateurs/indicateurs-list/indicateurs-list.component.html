@@ -1,0 +1,502 @@
+<!-- src/app/features/indicateurs/indicateurs-list/indicateurs-list.component.html -->
+
+<!-- PAGE HEADER -->
+<div class="ind-page-header">
+  <div>
+    <h1 class="ind-page-title">Indicateurs de performance</h1>
+    <div class="ind-page-sub">
+      {{ filteredIndicateurs.length }} indicateurs définis
+    </div>
+  </div>
+  <!-- Nouvel indicateur -->
+  <button class="ind-btn-new" (click)="openCreate()" *ngIf="canEdit">
+    <svg
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.5"
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+    >
+      <path d="M12 4v16m8-8H4" />
+    </svg>
+    Nouvel indicateur
+  </button>
+</div>
+
+<!-- TOOLBAR : recherche + processus + tableau de bord + bouton -->
+<div class="ind-content">
+  <div class="ind-toolbar">
+    <!-- Recherche -->
+    <div class="ind-search-box">
+      <svg
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+        width="14"
+        height="14"
+        style="flex-shrink: 0; color: #9ca3af"
+      >
+        <circle cx="11" cy="11" r="8" />
+        <path d="M21 21l-4.35-4.35" />
+      </svg>
+      <input
+        type="text"
+        placeholder="Rechercher..."
+        [(ngModel)]="searchTerm"
+        (input)="onSearchChange()"
+      />
+    </div>
+
+    <!-- Filtre processus -->
+    <select
+      class="ind-proc-select"
+      [(ngModel)]="processusFilter"
+      (change)="onProcessusChange()"
+    >
+      <option value="">Tous les processus</option>
+      <option *ngFor="let p of processus" [value]="p.id">
+        {{ p.code }} — {{ p.nom }}
+      </option>
+    </select>
+
+    <!-- Tableau de bord -->
+    <button class="ind-btn-dashboard" (click)="openDashboard()">
+      <svg
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+        width="14"
+        height="14"
+      >
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+      </svg>
+      Tableau de bord
+    </button>
+  </div>
+
+  <!-- TABLE -->
+  <div class="ind-table-card">
+    <table class="ind-tbl">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Nom</th>
+          <th>Processus</th>
+          <th>Méthode de calcul</th>
+          <th>Cible</th>
+          <th>Seuil alerte</th>
+          <th>Fréquence</th>
+          <th>Dernière valeur</th>
+          <th>Statut</th>
+          <th style="width: 110px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let ind of filteredIndicateurs">
+          <td class="ind-code-cell">{{ ind.code }}</td>
+          <td>
+            <div class="ind-nom">{{ ind.nom }}</div>
+            <div class="ind-desc" *ngIf="ind.description">
+              {{ ind.description }}
+            </div>
+          </td>
+          <td>
+            <span class="ind-proc-badge" *ngIf="ind.processusCode">{{
+              ind.processusCode
+            }}</span>
+            <span class="ind-dash" *ngIf="!ind.processusCode">—</span>
+          </td>
+          <td class="ind-calcul">{{ ind.methodeCalcul }}</td>
+          <td class="ind-num">{{ formatCible(ind) }}</td>
+          <td class="ind-num">{{ formatSeuil(ind) }}</td>
+          <td class="ind-freq">{{ ind.frequence }}</td>
+          <td>
+            <div class="ind-val-block" *ngIf="ind.derniereValeur !== undefined">
+              <span class="ind-val-num">{{ formatValeur(ind) }}</span>
+              <span class="ind-val-per">{{ ind.dernierePeriode }}</span>
+            </div>
+            <span class="ind-dash" *ngIf="ind.derniereValeur === undefined"
+              >—</span
+            >
+          </td>
+          <td>
+            <span class="ind-badge" [ngClass]="getStatutClass(ind.statut)">{{
+              ind.statut
+            }}</span>
+          </td>
+          <td>
+            <div class="ind-row-actions">
+              <!-- + Ajouter valeur -->
+              <button
+              *ngIf="canEdit"
+                class="ind-act-btn ind-act-add"
+                title="Ajouter une valeur"
+                (click)="openValeur(ind)"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  viewBox="0 0 24 24"
+                  width="13"
+                  height="13"
+                >
+                  <path d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+              <!-- Modifier -->
+              <button
+                *ngIf="canEdit"
+                class="ind-act-btn"
+                title="Modifier"
+                (click)="openEdit(ind)"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="13"
+                  height="13"
+                >
+                  <path
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              </button>
+              <!-- Supprimer -->
+              <button
+              *ngIf="canEdit"
+                class="ind-act-btn ind-act-del"
+                title="Supprimer"
+                (click)="openDelete(ind)"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="13"
+                  height="13"
+                >
+                  <path
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="filteredIndicateurs.length === 0">
+          <td colspan="10" class="ind-empty-row">Aucun indicateur trouvé.</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="ind-tbl-footer">
+      <span>
+        Affichage {{ (currentPage - 1) * pageSize + 1 }}–{{ lastIndex }} sur
+        {{ filteredIndicateurs.length }} indicateur(s)
+      </span>
+      <div class="ind-pagination" *ngIf="totalPages > 1">
+        <button
+          class="ind-page-btn"
+          *ngFor="let pg of pagesArray()"
+          [class.active]="currentPage === pg"
+          (click)="currentPage = pg"
+        >
+          {{ pg }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODAL AJOUTER VALEUR
+══════════════════════════════════════════ -->
+<ng-container *ngIf="showValeurModal && selectedIndicateur">
+  <div class="indm-overlay" (click)="closeValeur()">
+    <div class="indm-box indm-valeur" (click)="$event.stopPropagation()">
+      <div class="indm-hdr indm-hdr-green">
+        <span class="indm-hdr-title"
+          >Ajouter une valeur pour {{ selectedIndicateur.nom }}</span
+        >
+        <button class="indm-hdr-close" (click)="closeValeur()">✕</button>
+      </div>
+
+      <div class="indm-body">
+        <div class="indm-errors" *ngIf="valeurErrors.length > 0">
+          <div *ngFor="let e of valeurErrors">⚠ {{ e }}</div>
+        </div>
+
+        <div class="indm-fg">
+          <label>Période <span class="indm-req">*</span></label>
+          <input
+            type="text"
+            [(ngModel)]="valeurForm.periode"
+            placeholder="ex: Jan 2026, T1 2026"
+          />
+        </div>
+        <div class="indm-fg" style="margin-top: 12px">
+          <label>Valeur <span class="indm-req">*</span></label>
+          <input type="number" [(ngModel)]="valeurForm.valeur" placeholder="" />
+        </div>
+        <div class="indm-fg" style="margin-top: 12px">
+          <label>Date de mesure</label>
+          <input type="date" [(ngModel)]="valeurForm.dateMesure" />
+        </div>
+        <div class="indm-fg" style="margin-top: 12px">
+          <label>Saisi par</label>
+          <select [(ngModel)]="valeurForm.saisiParId">
+            <option value="">Sélectionner</option>
+            <option *ngFor="let r of responsables" [value]="r.id">
+              {{ r.nom }}
+            </option>
+          </select>
+        </div>
+        <div class="indm-fg" style="margin-top: 12px">
+          <label>Commentaire</label>
+          <textarea
+            [(ngModel)]="valeurForm.commentaire"
+            rows="3"
+            placeholder=""
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="indm-footer">
+        <button class="indm-btn-ghost" (click)="closeValeur()">Annuler</button>
+        <button class="indm-btn-green" (click)="saveValeur()">
+          ✓ Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+<!-- ══════════════════════════════════════════
+     MODAL TABLEAU DE BORD
+══════════════════════════════════════════ -->
+<ng-container *ngIf="showDashboard">
+  <div class="indm-overlay" (click)="closeDashboard()">
+    <div class="indm-box indm-dashboard" (click)="$event.stopPropagation()">
+      <div class="indm-hdr indm-hdr-green">
+        <span class="indm-hdr-title">Tableau de bord des indicateurs</span>
+        <button class="indm-hdr-close" (click)="closeDashboard()">✕</button>
+      </div>
+
+      <div class="indm-body">
+        <div class="indm-dash-grid">
+          <div class="indm-dash-card" *ngFor="let ind of allIndicateurs">
+            <div class="indm-dash-card-title">
+              {{ ind.code }} – {{ ind.nom }}
+            </div>
+            <hr class="indm-dash-sep" />
+            <div class="indm-dash-val-row">
+              <span class="indm-dash-val">{{ formatValeur(ind) }}</span>
+              <span class="indm-dash-per">{{ ind.dernierePeriode }}</span>
+            </div>
+            <div class="indm-dash-bar-track">
+              <div
+                class="indm-dash-bar-fill"
+                [style.width]="getBarWidth(ind) + '%'"
+                [style.background]="getBarColor(ind)"
+              ></div>
+            </div>
+            <div class="indm-dash-info">
+              <span>Cible : {{ formatCible(ind) }}</span>
+              <span>Seuil : {{ formatSeuil(ind) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="indm-footer">
+        <button class="indm-btn-ghost" (click)="closeDashboard()">
+          Fermer
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+<!-- ══════════════════════════════════════════
+     MODAL FORMULAIRE INDICATEUR
+══════════════════════════════════════════ -->
+<ng-container *ngIf="showFormModal">
+  <div class="indm-overlay" (click)="closeForm()">
+    <div class="indm-box indm-form" (click)="$event.stopPropagation()">
+      <div class="indm-hdr indm-hdr-green">
+        <span class="indm-hdr-title">{{
+          isEdit ? "Modifier l'indicateur" : "Nouvel indicateur"
+        }}</span>
+        <button class="indm-hdr-close" (click)="closeForm()">✕</button>
+      </div>
+
+      <div class="indm-body">
+        <div class="indm-errors" *ngIf="formErrors.length > 0">
+          <div *ngFor="let e of formErrors">⚠ {{ e }}</div>
+        </div>
+
+        <!-- Ligne 1 : Code + Nom -->
+        <div class="indm-grid-2">
+          <div class="indm-fg">
+            <label>Code <span class="indm-req">*</span></label>
+            <input type="text" [(ngModel)]="form.code" placeholder="" />
+          </div>
+          <div class="indm-fg">
+            <label>Nom <span class="indm-req">*</span></label>
+            <input type="text" [(ngModel)]="form.nom" placeholder="" />
+          </div>
+        </div>
+
+        <!-- Ligne 2 : Processus + Responsable -->
+        <div class="indm-grid-2" style="margin-top: 12px">
+          <div class="indm-fg">
+            <label>Processus <span class="indm-req">*</span></label>
+            <select [(ngModel)]="form.processusId">
+              <option value="">Sélectionner</option>
+              <option *ngFor="let p of processus" [value]="p.id">
+                {{ p.code }} — {{ p.nom }}
+              </option>
+            </select>
+          </div>
+          <div class="indm-fg">
+            <label>Responsable</label>
+            <select [(ngModel)]="form.responsableId">
+              <option value="">Sélectionner</option>
+              <option *ngFor="let r of responsables" [value]="r.id">
+                {{ r.nom }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="indm-fg" style="margin-top: 12px">
+          <label>Description</label>
+          <textarea
+            [(ngModel)]="form.description"
+            rows="3"
+            placeholder=""
+          ></textarea>
+        </div>
+
+        <!-- Ligne 3 : Unité + Méthode de calcul -->
+        <div class="indm-grid-2" style="margin-top: 12px">
+          <div class="indm-fg">
+            <label>Unité</label>
+            <input
+              type="text"
+              [(ngModel)]="form.unite"
+              placeholder="ex: %, j"
+            />
+          </div>
+          <div class="indm-fg">
+            <label>Méthode de calcul <span class="indm-req">*</span></label>
+            <input
+              type="text"
+              [(ngModel)]="form.methodeCalcul"
+              placeholder=""
+            />
+          </div>
+        </div>
+
+        <!-- Ligne 4 : Valeur cible + Seuil d'alerte -->
+        <div class="indm-grid-2" style="margin-top: 12px">
+          <div class="indm-fg">
+            <label>Valeur cible</label>
+            <input
+              type="number"
+              [(ngModel)]="form.valeurCible"
+              placeholder=""
+            />
+          </div>
+          <div class="indm-fg">
+            <label>Seuil d'alerte</label>
+            <input
+              type="number"
+              [(ngModel)]="form.seuilAlerte"
+              placeholder=""
+            />
+          </div>
+        </div>
+
+        <!-- Ligne 5 : Fréquence + Statut -->
+        <div class="indm-grid-2" style="margin-top: 12px">
+          <div class="indm-fg">
+            <label>Fréquence</label>
+            <select [(ngModel)]="form.frequence">
+              <option value="MENSUEL">Mensuel</option>
+              <option value="TRIMESTRIEL">Trimestriel</option>
+              <option value="HEBDOMADAIRE">Hebdomadaire</option>
+              <option value="ANNUEL">Annuel</option>
+            </select>
+          </div>
+          <div class="indm-fg">
+            <label>Statut</label>
+            <select [(ngModel)]="form.actif">
+              <option [ngValue]="true">Actif</option>
+              <option [ngValue]="false">Inactif</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="indm-footer">
+        <button class="indm-btn-ghost" (click)="closeForm()">Annuler</button>
+        <button class="indm-btn-green" (click)="saveIndicateur()">
+          ✓ Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+<!-- ══════════════════════════════════════════
+     MODAL SUPPRESSION
+══════════════════════════════════════════ -->
+<ng-container *ngIf="showDeleteModal && selectedIndicateur">
+  <div class="indm-overlay" (click)="closeDelete()">
+    <div class="indm-box indm-delete" (click)="$event.stopPropagation()">
+      <div class="indm-hdr indm-hdr-red">
+        <span class="indm-hdr-title">Confirmer la suppression</span>
+        <button class="indm-hdr-close" (click)="closeDelete()">✕</button>
+      </div>
+
+      <div class="indm-del-body">
+        <div class="indm-del-icon">
+          <svg
+            fill="none"
+            stroke="#ef4444"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="28"
+            height="28"
+          >
+            <path
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+        </div>
+        <p class="indm-del-txt">
+          Voulez-vous vraiment supprimer<br /><strong>{{
+            selectedIndicateur.nom
+          }}</strong>
+          ?
+        </p>
+        <p class="indm-del-warn">Cette action est irréversible.</p>
+      </div>
+
+      <div class="indm-footer">
+        <button class="indm-btn-ghost" (click)="closeDelete()">Annuler</button>
+        <button class="indm-btn-red" (click)="confirmDelete()">
+          Supprimer définitivement
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>

@@ -1,0 +1,148 @@
+<div class="page-header">
+  <h1>Enregistrements (preuves d'exécution)</h1>
+  <button class="btn-primary" (click)="openUploadModal()" *ngIf="canEdit">
+    + Ajouter une preuve
+  </button>
+</div>
+
+<div class="filters">
+  <select [(ngModel)]="selectedProcessusId" (change)="onProcessusChange()">
+    <option value="">Tous les processus</option>
+    <option *ngFor="let p of processusList" [value]="p.id">
+      {{ p.code }} – {{ p.nom }}
+    </option>
+  </select>
+</div>
+
+<div class="content-scroll">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Processus</th>
+        <th>Fichier</th>
+        <th>Description</th>
+        <th>Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let e of paginatedEnregistrements">
+        <td>
+          <span class="proc-badge">{{ getProcessusCode(e) }}</span>
+        </td>
+        <td>
+          <a (click)="download(e.id, e.fichierPath)">{{
+            getFileName(e.fichierPath)
+          }}</a>
+        </td>
+        <td>{{ e.description }}</td>
+        <td>{{ e.dateEnregistrement | date: "dd/MM/yyyy HH:mm" }}</td>
+        <td>
+          <button
+            *ngIf="canEdit"
+            class="action-btn danger"
+            (click)="delete(e.id)"
+            title="Supprimer"
+          >
+            <svg
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+          </button>
+        </td>
+      </tr>
+      <tr *ngIf="enregistrements.length === 0">
+        <td colspan="5" class="empty-message">Aucun enregistrement trouvé.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- FOOTER AVEC PAGINATION -->
+  <div class="table-footer">
+    <span>
+      Affichage {{ (currentPage - 1) * pageSize + 1 }}–{{ lastIndex }} sur
+      {{ enregistrements.length }} enregistrement(s)
+    </span>
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button
+        class="page-btn"
+        *ngFor="let pg of pagesArray()"
+        [class.active]="currentPage === pg"
+        (click)="currentPage = pg"
+      >
+        {{ pg }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODALE UPLOAD -->
+<div
+  class="modal-overlay"
+  [class.show]="showUploadModal"
+  (click)="closeModal()"
+>
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">Ajouter une preuve</div>
+      <button class="modal-close" (click)="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <select [(ngModel)]="uploadProcessusId">
+        <option *ngFor="let p of processusList" [value]="p.id">
+          {{ p.code }} – {{ p.nom }}
+        </option>
+      </select>
+      <input type="file" (change)="onFileSelected($event)" />
+      <textarea
+        placeholder="Description (optionnelle)"
+        [(ngModel)]="uploadDescription"
+      ></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" (click)="closeModal()">Annuler</button>
+      <button class="btn btn-primary" (click)="upload()">Uploader</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODALE DE CONFIRMATION SUPPRESSION -->
+<div
+  class="delete-overlay"
+  *ngIf="showDeleteModal"
+  (click)="closeDeleteModal()"
+>
+  <div class="delete-dialog" (click)="$event.stopPropagation()">
+    <div class="delete-icon">
+      <svg
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+      >
+        <path
+          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+        />
+      </svg>
+    </div>
+    <h3>Supprimer cette preuve ?</h3>
+    <p>
+      Cette action est irréversible. Le fichier sera également supprimé du
+      serveur.
+    </p>
+    <div class="delete-actions">
+      <button class="btn btn-ghost" (click)="closeDeleteModal()">
+        Annuler
+      </button>
+      <button class="btn btn-danger" (click)="confirmDelete()">
+        Supprimer définitivement
+      </button>
+    </div>
+  </div>
+</div>

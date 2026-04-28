@@ -1,0 +1,259 @@
+<div class="page-header-bar">
+  <div>
+    <h1>Utilisateurs</h1>
+    <div class="sub">
+      Gestion des utilisateurs — {{ filteredUsers.length }} utilisateurs
+    </div>
+  </div>
+  <button class="btn btn-primary" (click)="openCreate()">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path d="M12 4v16m8-8H4" />
+    </svg>
+    Nouvel utilisateur
+  </button>
+</div>
+
+<div class="filters-bar">
+  <div class="search-box">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="8" />
+      <path d="M21 21l-4.35-4.35" />
+    </svg>
+    <input
+      type="text"
+      placeholder="Rechercher un utilisateur..."
+      [(ngModel)]="searchTerm"
+      (input)="onSearchChange()"
+    />
+  </div>
+  <select
+    [(ngModel)]="roleFilter"
+    (change)="onRoleFilterChange()"
+    class="filter-select"
+  >
+    <option value="">Tous les rôles</option>
+    <option value="ADMIN_ORG">Administrateur</option>
+    <option value="RESPONSABLE_SMQ">Responsable SMQ</option>
+    <option value="AUDITEUR">Auditeur</option>
+    <option value="UTILISATEUR">Utilisateur</option>
+  </select>
+</div>
+
+<div class="content-scroll">
+  <div class="table-container">
+    <table class="user-table">
+      <thead>
+        <tr>
+          <th>Nom complet</th>
+          <th>Email</th>
+          <th>Rôle</th>
+          <th>Fonction</th>
+          <th>Statut</th>
+          <th style="width: 100px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let user of paginatedUsers">
+          <td>
+            <div class="user-name">{{ user.Prenom }} {{ user.Nom }}</div>
+            <div class="user-username">{{ user.Username }}</div>
+          </td>
+          <td>
+            <span class="email-badge">{{ user.Email }}</span>
+          </td>
+          <td>
+            <span class="role-badge" ...>{{
+              getRoleLabel(user.RoleGlobal)
+            }}</span>
+          </td>
+          <td>{{ user.Fonction || "—" }}</td>
+          <td>
+            <span
+              class="status-badge"
+              [class.active]="user.IsActive"
+              [class.inactive]="!user.IsActive"
+              >{{ user.IsActive ? "Actif" : "Inactif" }}</span
+            >
+          </td>
+          <td>
+            <div class="actions-cell">
+              <button
+                class="action-btn"
+                title="Modifier"
+                (click)="openEdit(user)"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              </button>
+              <button
+                class="action-btn danger"
+                title="Supprimer"
+                (click)="openDelete(user)"
+                *ngIf="+user.Id !== +currentUserId"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="filteredUsers.length === 0">
+          <td colspan="6" class="empty-row">Aucun utilisateur trouvé.</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="table-footer">
+      <span
+        >Affichage {{ (currentPage - 1) * pageSize + 1 }}–{{ lastIndex }} sur
+        {{ filteredUsers.length }} utilisateur(s)</span
+      >
+      <div class="pagination" *ngIf="totalPages > 1">
+        <button
+          class="page-btn"
+          *ngFor="let pg of pagesArray()"
+          [class.active]="currentPage === pg"
+          (click)="currentPage = pg"
+        >
+          {{ pg }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FORMULAIRE -->
+<ng-container *ngIf="showFormModal">
+  <div class="user-overlay" (click)="closeForm()">
+    <div class="user-modal form-box" (click)="$event.stopPropagation()">
+      <div class="user-header">
+        <span>{{ isEdit ? "Modifier" : "Nouvel" }} utilisateur</span>
+        <button class="user-close" (click)="closeForm()">✕</button>
+      </div>
+      <div class="user-body">
+        <div class="form-section-title">Identification</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nom <span class="req">*</span></label>
+            <input type="text" [(ngModel)]="form.nom" placeholder="Nom" />
+          </div>
+          <div class="form-group">
+            <label>Prénom <span class="req">*</span></label>
+            <input type="text" [(ngModel)]="form.prenom" placeholder="Prénom" />
+          </div>
+          <div class="form-group full">
+            <label>Email <span class="req">*</span></label>
+            <input
+              type="email"
+              [(ngModel)]="form.email"
+              placeholder="email@exemple.com"
+              autocomplete="off"
+            />
+          </div>
+          <div class="form-group">
+            <label>Nom d'utilisateur <span class="req">*</span></label>
+            <input
+              type="text"
+              [(ngModel)]="form.username"
+              placeholder="username"
+              autocomplete="off"
+            />
+          </div>
+          <div class="form-group" *ngIf="!isEdit">
+            <label>Mot de passe <span class="req">*</span></label>
+            <input
+              type="password"
+              [(ngModel)]="form.password"
+              placeholder="••••••••"
+              autocomplete="new-password"
+            />
+          </div>
+          <div class="form-group">
+            <label>Rôle <span class="req">*</span></label>
+            <select [(ngModel)]="form.roleGlobal">
+              <option value="ADMIN_ORG">Administrateur</option>
+              <option value="RESPONSABLE_SMQ">Responsable SMQ</option>
+              <option value="AUDITEUR">Auditeur</option>
+              <option value="UTILISATEUR">Utilisateur</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Fonction</label>
+            <input
+              type="text"
+              [(ngModel)]="form.fonction"
+              placeholder="ex: Responsable Qualité"
+            />
+          </div>
+          <div class="form-group">
+            <label>Statut</label>
+            <select [(ngModel)]="form.isActive">
+              <option [ngValue]="true">Actif</option>
+              <option [ngValue]="false">Inactif</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="user-footer">
+        <button class="btn btn-ghost" (click)="closeForm()">Annuler</button>
+        <button class="btn btn-primary" (click)="saveUser()">
+          ✓ Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+<!-- MODAL SUPPRESSION -->
+<ng-container *ngIf="showDeleteModal && selectedUser">
+  <div class="user-overlay" (click)="closeDelete()">
+    <div class="user-modal delete-box" (click)="$event.stopPropagation()">
+      <div class="user-header delete-header">
+        <span>Confirmer la suppression</span>
+        <button class="user-close" (click)="closeDelete()">✕</button>
+      </div>
+      <div class="delete-body">
+        <div class="delete-icon-wrap">
+          <svg
+            fill="none"
+            stroke="#ef4444"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+        </div>
+        <p>
+          Voulez-vous vraiment supprimer<br /><strong
+            >{{ selectedUser.Prenom }} {{ selectedUser.Nom }}</strong
+          >
+          ?
+        </p>
+        <p class="delete-warn">Cette action est irréversible.</p>
+      </div>
+      <div class="delete-footer">
+        <button class="btn btn-ghost" (click)="closeDelete()">Annuler</button>
+        <button class="btn btn-danger" (click)="confirmDelete()">
+          Supprimer définitivement
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>

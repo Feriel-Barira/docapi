@@ -1,0 +1,704 @@
+<div class="page-header-bar">
+  <div>
+    <h1>Documents</h1>
+    <div class="sub">
+      Gestion documentaire — {{ filteredDocuments.length }} documents
+    </div>
+  </div>
+  <div class="ph-actions">
+    <button *ngIf="canEdit" class="btn btn-primary" (click)="openCreate()">
+      <svg
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+      >
+        <path d="M12 4v16m8-8H4" />
+      </svg>
+      Nouveau document
+    </button>
+  </div>
+</div>
+
+<div class="content-scroll">
+  <div class="table-toolbar">
+    <div class="tb-search">
+      <svg
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+      >
+        <circle cx="11" cy="11" r="8" />
+        <path d="M21 21l-4.35-4.35" />
+      </svg>
+      <input
+        type="text"
+        placeholder="Rechercher un document..."
+        [(ngModel)]="searchTerm"
+        (input)="onSearchChange(searchTerm)"
+      />
+    </div>
+    <div style="display: flex; gap: 4px">
+      <button
+        class="tb-filter"
+        [class.active]="typeFilter === ''"
+        (click)="setTypeFilter('')"
+      >
+        Tous
+      </button>
+      <button
+        class="tb-filter"
+        [class.active]="typeFilter === 'REFERENCE'"
+        (click)="setTypeFilter('REFERENCE')"
+      >
+        Reference
+      </button>
+      <button
+        class="tb-filter"
+        [class.active]="typeFilter === 'TRAVAIL'"
+        (click)="setTypeFilter('TRAVAIL')"
+      >
+        Travail
+      </button>
+    </div>
+    <div
+      style="margin-left: auto; display: flex; gap: 6px; align-items: center"
+    >
+      <span style="font-size: 11.5px; color: var(--text-muted)">Statut :</span>
+      <div style="display: flex; gap: 4px">
+        <button
+          class="tb-filter"
+          [class.active]="statutFilter === ''"
+          (click)="setStatutFilter('')"
+        >
+          Tous
+        </button>
+        <button
+          class="tb-filter"
+          [class.active]="statutFilter === 'VALIDE'"
+          (click)="setStatutFilter('VALIDE')"
+        >
+          Approuvés
+        </button>
+        <button
+          class="tb-filter"
+          [class.active]="statutFilter === 'EN_REVISION'"
+          (click)="setStatutFilter('EN_REVISION')"
+        >
+          En révision
+        </button>
+        <button
+          class="tb-filter"
+          [class.active]="statutFilter === 'OBSOLETE'"
+          (click)="setStatutFilter('OBSOLETE')"
+        >
+          Obsolètes
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <!-- TOOLBAR -->
+
+    <!-- TABLE -->
+    <table class="word-table">
+      <thead>
+        <tr>
+          <th>Document ↑</th>
+          <th>Type</th>
+          <th>Processus</th>
+          <th>Statut (dernière version)</th>
+          <th>N° version</th>
+          <th>Validé le</th>
+          <th>Auteur</th>
+          <th style="width: 130px">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let doc of paginatedDocuments">
+          <td>
+            <div class="doc-cell">
+              <div
+                class="doc-icon"
+                [class.ref]="doc.typeDocument === 'REFERENCE'"
+                [class.trav]="doc.typeDocument === 'TRAVAIL'"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <div class="doc-name">{{ doc.titre }}</div>
+                <div class="doc-ref-code">{{ doc.code }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="tag" [ngClass]="getTypeClass(doc.typeDocument)">{{
+              getTypeLabel(doc.typeDocument)
+            }}</span>
+          </td>
+          <td>
+            <span class="tag xl">{{ getProcessusCode(doc) }}</span>
+          </td>
+          <td>
+            <span
+              class="tag"
+              [ngClass]="getStatutClass(doc.derniereVersionStatut)"
+              >{{ getStatutLabel(doc.derniereVersionStatut) }}</span
+            >
+          </td>
+          <td
+            style="
+              font-family: &quot;Courier New&quot;, monospace;
+              font-size: 11.5px;
+              color: var(--text-muted);
+            "
+          >
+            {{ doc.derniereVersion ?? "—" }}
+          </td>
+          <td style="font-size: 11.5px; color: var(--text-muted)">
+            {{ doc.dateMiseAJour ?? "—" }}
+          </td>
+          <td>
+            <div class="owner-cell" *ngIf="doc.responsableNom">
+              <div class="owner-av" [style.background]="doc.responsableCouleur">
+                {{ doc.responsableInitiales }}
+              </div>
+              <span>{{ doc.responsableNom }}</span>
+            </div>
+          </td>
+          <td>
+            <div class="row-actions" style="opacity: 1">
+              <button
+                class="row-btn"
+                title="Consulter la dernière version"
+                (click)="viewDocument(doc)"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+              <!-- 1. Versions & Traçabilité -->
+              <button
+                class="row-btn"
+                title="Versions & Traçabilité"
+                (click)="openVersions(doc)"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </button>
+
+              <!-- 3. Modifier -->
+              <button
+                *ngIf="canEdit"
+                class="row-btn"
+                title="Modifier"
+                (click)="openEdit(doc)"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              </button>
+              <!-- 4. Supprimer -->
+              <button
+                *ngIf="canEdit"
+                class="row-btn del"
+                title="Supprimer"
+                (click)="$event.stopPropagation(); openDelete(doc)"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="filteredDocuments.length === 0">
+          <td colspan="8" class="empty-row">Aucun document trouvé.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- FOOTER -->
+    <div class="table-footer">
+      <span>
+        Affichage {{ (currentPage - 1) * pageSize + 1 }}–{{ lastIndex }} sur
+        {{ filteredDocuments.length }} document(s)
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL VERSIONS & TRAÇABILITÉ ══ -->
+<ng-container *ngIf="showVersionsModal && selectedDocument">
+  <div class="doc-overlay" (click)="closeVersions()">
+    <div class="doc-modal versions-box" (click)="$event.stopPropagation()">
+      <div class="doc-header">
+        <span>Versions &amp; Traçabilité {{ selectedDocument.code }}</span>
+        <button class="doc-close" (click)="closeVersions()">✕</button>
+      </div>
+      <div class="doc-body">
+        <div class="versions-title">
+          HISTORIQUE DES VERSIONS ({{
+            (selectedDocument.versions || []).length
+          }})
+        </div>
+        <div
+          *ngFor="let v of selectedDocument.versions; let first = first"
+          class="version-card"
+        >
+          <div class="version-card-header">
+            <div class="version-tags">
+              <span class="ver-num">{{ v.numeroVersion }}</span>
+              <span class="tag" [ngClass]="getStatutClass(v.statut)">{{
+                getStatutLabel(v.statut)
+              }}</span>
+              <span class="tag xl" *ngIf="first">Dernière version</span>
+            </div>
+          </div>
+          <p class="ver-comment" *ngIf="v.commentaireRevision">
+            {{ v.commentaireRevision }}
+          </p>
+          <!-- Flux validation -->
+          <div class="flux-row">
+            <div class="flux-step" *ngIf="v.etabliParNom">
+              <span class="flux-badge etabli">E</span>
+              <span class="flux-name">{{ formatNomCourt(v.etabliParNom) }}</span>
+              <span class="flux-date">{{
+                v.dateEtablissement | date: "dd/MM/yyyy"
+              }}</span>
+            </div>
+            <span class="flux-arrow" *ngIf="v.verifieParNom">→</span>
+            <div class="flux-step" *ngIf="v.verifieParNom">
+              <span class="flux-badge verifie">V</span>
+              <span class="flux-name">{{ formatNomCourt(v.verifieParNom) }}
+              </span>
+              <span class="flux-date">{{
+                v.dateVerification | date: "dd/MM/yyyy"
+              }}</span>
+            </div>
+            <span class="flux-arrow" *ngIf="v.valideParNom">→</span>
+            <div class="flux-step" *ngIf="v.valideParNom">
+              <span class="flux-badge valide">A</span>
+              <span class="flux-name">{{ formatNomCourt(v.valideParNom) }}</span>
+              <span class="flux-date">{{
+                v.dateValidation | date: "dd/MM/yyyy"
+              }}</span>
+            </div>
+          </div>
+          <!-- Fichier -->
+          <div class="fichier-row" *ngIf="v.fichierPath">
+            <svg
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              style="width: 13px; height: 13px"
+            >
+              <path
+                d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+              />
+            </svg>
+            <span class="fichier-name">{{ v.fichierPath }}</span>
+            <span *ngIf="v.dateMiseEnVigueur" class="fichier-vigueur"
+              >En vigueur : {{ v.dateMiseEnVigueur | date: "dd/MM/yyyy" }}</span
+            >
+            <a class="fichier-link" (click)="downloadFile(v)">Télécharger</a>
+            <a class="fichier-link" (click)="previewFile(v)">Prévisualiser</a>
+          </div>
+        </div>
+        <div *ngIf="!selectedDocument.versions?.length" class="empty-versions">
+          Aucune version disponible.
+        </div>
+
+        <div class="versions-actions">
+          <button
+            *ngIf="canManageVersions"
+            class="btn btn-primary"
+            (click)="openNewVersion()"
+          >
+            <svg
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              style="width: 13px; height: 13px"
+            >
+              <path d="M12 4v16m8-8H4" />
+            </svg>
+            Nouvelle révision
+          </button>
+          <button
+            *ngIf="canManageVersions"
+            class="btn btn-ghost"
+            [disabled]="!canMettreEnObsolete()"
+            [class.disabled]="!canMettreEnObsolete()"
+            [title]="
+              canMettreEnObsolete()
+                ? 'Mettre en obsolète'
+                : 'Seule la dernière version VALIDE peut être mise en obsolète'
+            "
+            (click)="mettreEnObsolete()"
+            (click)="mettreEnObsolete()"
+          >
+            <svg
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              style="width: 13px; height: 13px"
+            >
+              <path
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+            Mettre en obsolète
+          </button>
+        </div>
+      </div>
+      <div class="doc-footer">
+        <button class="btn btn-ghost" (click)="closeVersions()">Fermer</button>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+<!-- ══ MODAL FORMULAIRE ══ -->
+<!-- ══ MODAL FORMULAIRE - NOUVEAU DOCUMENT ══ -->
+<ng-container *ngIf="showFormModal && !isEdit">
+  <div class="doc-overlay" (click)="closeForm()">
+    <div class="doc-modal form-box" (click)="$event.stopPropagation()">
+      <div class="doc-header">
+        <span>Nouveau document</span>
+        <button class="doc-close" (click)="closeForm()">✕</button>
+      </div>
+      <div class="doc-body">
+        <!-- IDENTIFICATION -->
+        <div class="form-section-title">Identification du document</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Code <span class="req">*</span></label>
+            <input
+              type="text"
+              [(ngModel)]="form.code"
+              placeholder="ex: MQ-001"
+            />
+          </div>
+          <div class="form-group">
+            <label>Titre <span class="req">*</span></label>
+            <input
+              type="text"
+              [(ngModel)]="form.titre"
+              placeholder="Titre du document"
+            />
+          </div>
+          <div class="form-group">
+            <label>Type <span class="req">*</span></label>
+            <select [(ngModel)]="form.typeDocument">
+              <option value="REFERENCE">Reference</option>
+              <option value="TRAVAIL">Travail</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Actif</label>
+            <select [(ngModel)]="form.actif">
+              <option [ngValue]="true">Oui</option>
+              <option [ngValue]="false">Non</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Processus associé</label>
+            <select [(ngModel)]="form.processusId">
+              <option value="">Sélectionner</option>
+              <option *ngFor="let p of processusDisponibles" [value]="p.id">
+                {{ p.code }} — {{ p.nom }}
+              </option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Description</label>
+            <textarea
+              [(ngModel)]="form.description"
+              rows="3"
+              placeholder="Description du document..."
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- PREMIÈRE VERSION -->
+        <div class="form-section-title" style="margin-top: 20px">
+          Première version
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Numéro de version <span class="req">*</span></label>
+            <input
+              type="text"
+              [(ngModel)]="form.numeroVersion"
+              placeholder="v1.0"
+            />
+          </div>
+          <div class="form-group">
+            <label>Statut</label>
+            <select [(ngModel)]="form.versionStatut">
+              <option value="BROUILLON">Brouillon</option>
+              <option value="EN_REVISION">En révision</option>
+              <option value="VALIDE">Validé</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Commentaire de révision</label>
+            <textarea
+              [(ngModel)]="form.commentaireRevision"
+              rows="3"
+              placeholder="Décrire les modifications apportées..."
+            ></textarea>
+          </div>
+          <div class="form-group full">
+            <label>Fichier associé</label>
+            <div style="display: flex; gap: 8px; align-items: center">
+              <input
+                type="text"
+                [(ngModel)]="form.fichierPath"
+                placeholder="ex: MQ-001-v1.0.pdf"
+                style="flex: 1"
+              />
+              <input
+                type="file"
+                #fileInput
+                style="display: none"
+                (change)="onFileSelected($event)"
+              />
+              <button
+                type="button"
+                class="btn btn-ghost"
+                (click)="fileInput.click()"
+              >
+                📁 Parcourir
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- FLUX DE VALIDATION -->
+        <div class="form-section-title">Flux de validation</div>
+        <div class="flux-form-grid">
+          <div class="flux-form-col">
+            <div class="flux-form-badge etabli">E</div>
+            <label>Etabli par <span class="req">*</span></label>
+            <select [(ngModel)]="form.etabliParId">
+              <option value="">Sélectionner</option>
+              <option *ngFor="let r of responsablesDisponibles" [value]="r.id">
+                {{ r.nom }}
+              </option>
+            </select>
+            <label style="margin-top: 8px">Date établissement</label>
+            <input type="date" [(ngModel)]="form.dateEtablissement" />
+          </div>
+          <div class="flux-arrow-sep">→</div>
+          <div class="flux-form-col">
+            <div class="flux-form-badge verifie">V</div>
+            <label>Vérifié par</label>
+            <select [(ngModel)]="form.verifieParId">
+              <option value="">Sélectionner</option>
+              <option *ngFor="let r of responsablesDisponibles" [value]="r.id">
+                {{ r.nom }}
+              </option>
+            </select>
+            <label style="margin-top: 8px">Date vérification</label>
+            <input type="date" [(ngModel)]="form.dateVerification" />
+          </div>
+          <div class="flux-arrow-sep">→</div>
+          <div class="flux-form-col">
+            <div class="flux-form-badge valide">A</div>
+            <label>Validé par</label>
+            <select [(ngModel)]="form.valideParId">
+              <option value="">Sélectionner</option>
+              <option *ngFor="let r of responsablesDisponibles" [value]="r.id">
+                {{ r.nom }}
+              </option>
+            </select>
+            <label style="margin-top: 8px">Date validation</label>
+            <input type="date" [(ngModel)]="form.dateValidation" />
+          </div>
+        </div>
+        <div class="form-group" style="margin-top: 12px">
+          <label>Date mise en vigueur</label>
+          <input
+            type="date"
+            [(ngModel)]="form.dateMiseEnVigueur"
+            style="max-width: 200px"
+          />
+        </div>
+      </div>
+      <div class="doc-footer">
+        <button class="btn btn-ghost" (click)="closeForm()">Annuler</button>
+        <button class="btn btn-primary" (click)="saveDocument()">
+          ✓ Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+<!-- ══ MODAL MODIFICATION (seulement identification) ══ -->
+<ng-container *ngIf="showFormModal && isEdit">
+  <div class="doc-overlay" (click)="closeForm()">
+    <div class="doc-modal form-box" (click)="$event.stopPropagation()">
+      <div class="doc-header">
+        <span>Modifier le document</span>
+        <button class="doc-close" (click)="closeForm()">✕</button>
+      </div>
+      <div class="doc-body">
+        <!-- UNIQUEMENT IDENTIFICATION -->
+        <div class="form-section-title">Identification du document</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Code <span class="req">*</span></label>
+            <input
+              type="text"
+              [(ngModel)]="form.code"
+              placeholder="ex: MQ-001"
+            />
+          </div>
+          <div class="form-group">
+            <label>Titre <span class="req">*</span></label>
+            <input
+              type="text"
+              [(ngModel)]="form.titre"
+              placeholder="Titre du document"
+            />
+          </div>
+          <div class="form-group">
+            <label>Type <span class="req">*</span></label>
+            <select [(ngModel)]="form.typeDocument">
+              <option value="REFERENCE">Reference</option>
+              <option value="TRAVAIL">Travail</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Actif</label>
+            <select [(ngModel)]="form.actif">
+              <option [ngValue]="true">Oui</option>
+              <option [ngValue]="false">Non</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Processus associé</label>
+            <select [(ngModel)]="form.processusId">
+              <option value="">Sélectionner</option>
+              <option *ngFor="let p of processusDisponibles" [value]="p.id">
+                {{ p.code }} — {{ p.nom }}
+              </option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Description</label>
+            <textarea
+              [(ngModel)]="form.description"
+              rows="3"
+              placeholder="Description du document..."
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Message informatif -->
+        <div
+          style="
+            margin-top: 20px;
+            padding: 12px;
+            background: #f0fdf4;
+            border-radius: 8px;
+            border-left: 3px solid #22c55e;
+          "
+        >
+          <small style="color: #166534">
+            ℹ️ Pour gérer les versions, utilisez le bouton "Versions &
+            Traçabilité" dans la liste.
+          </small>
+        </div>
+      </div>
+      <div class="doc-footer">
+        <button class="btn btn-ghost" (click)="closeForm()">Annuler</button>
+        <button class="btn btn-primary" (click)="saveDocument()">
+          ✓ Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+<!-- ══ MODAL SUPPRESSION ══ -->
+<ng-container *ngIf="showDeleteModal && selectedDocument">
+  <div class="doc-overlay" (click)="closeDelete()">
+    <div class="doc-modal delete-box" (click)="$event.stopPropagation()">
+      <div class="doc-header delete-header">
+        <span>Confirmer la suppression</span>
+        <button class="doc-close" (click)="closeDelete()">✕</button>
+      </div>
+      <div class="delete-body">
+        <div class="delete-icon-wrap">
+          <svg
+            fill="none"
+            stroke="#ef4444"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+        </div>
+        <p>
+          Voulez-vous vraiment supprimer<br /><strong>{{
+            selectedDocument.titre
+          }}</strong>
+          ?
+        </p>
+        <p class="delete-warn">Cette action est irréversible.</p>
+      </div>
+      <div class="delete-footer">
+        <button class="btn btn-ghost" (click)="closeDelete()">Annuler</button>
+        <button class="btn btn-danger" (click)="confirmDelete()">
+          Supprimer définitivement
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>

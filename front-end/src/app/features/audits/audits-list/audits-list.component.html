@@ -1,0 +1,388 @@
+<!-- src/app/features/audits/audits-list/audits-list.component.html -->
+
+<div class="aud-page-header">
+  <div>
+    <h1 class="aud-page-title">Audits</h1>
+    <div class="aud-page-sub">Gestion des audits de qualité</div>
+  </div>
+
+  <button class="aud-btn-new" (click)="openCreate()" *ngIf="canEdit">
+    <svg
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.5"
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+    >
+      <path d="M12 4v16m8-8H4" />
+    </svg>
+    Nouvel audit
+  </button>
+</div>
+
+<div class="aud-content">
+  <div class="aud-toolbar">
+    <div class="aud-search-box">
+      <svg
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+        width="14"
+        height="14"
+      >
+        <circle cx="11" cy="11" r="8" />
+        <path d="M21 21l-4.35-4.35" />
+      </svg>
+      <input
+        type="text"
+        placeholder="Rechercher..."
+        [(ngModel)]="searchTerm"
+        (input)="onSearchChange()"
+      />
+    </div>
+
+    <select
+      class="aud-proc-select"
+      [(ngModel)]="processusFilter"
+      (change)="onProcessusChange()"
+    >
+      <option value="">Tous les processus</option>
+      <option *ngFor="let p of processus" [value]="p.id">
+        {{ p.code }} — {{ p.nom }}
+      </option>
+    </select>
+  </div>
+
+  <div class="aud-table-card">
+    <table class="aud-tbl">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Processus</th>
+          <th>Type</th>
+          <th>Fréquence</th>
+          <th>Responsable</th>
+          <th>Dernière évaluation</th>
+          <th>Statut</th>
+          <th style="width: 110px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let audit of filteredAudits">
+          <td>
+            <div class="aud-nom">{{ audit.nom }}</div>
+            <div class="aud-desc" *ngIf="audit.description">
+              {{ audit.description }}
+            </div>
+          </td>
+          <td>
+            <span class="aud-proc-badge" *ngIf="audit.processusCode">{{
+              audit.processusCode
+            }}</span>
+            <span class="aud-dash" *ngIf="!audit.processusCode">—</span>
+          </td>
+          <td>
+            <span class="aud-type-badge" [ngClass]="getTypeClass(audit.type)">
+              {{ getTypeLabel(audit.type) }}
+            </span>
+          </td>
+          <td class="aud-freq">{{ getFrequenceLabel(audit.frequence) }}</td>
+          <td class="aud-small">{{ audit.responsableNom || "—" }}</td>
+          <td>
+            <ng-container *ngIf="audit.derniereEvaluation; else noEval">
+              <div
+                class="aud-eval-badge"
+                [ngClass]="getEvalClass(audit.derniereEvaluation)"
+              >
+                {{ getEvalLabel(audit.derniereEvaluation) }}
+              </div>
+              <div class="aud-eval-date">
+                {{
+                  audit.derniereEvaluation.dateEvaluation | date: "dd/MM/yyyy"
+                }}
+              </div>
+              <div
+                class="aud-eval-by"
+                *ngIf="audit.derniereEvaluation.evalueParNom"
+              >
+                par {{ audit.derniereEvaluation.evalueParNom }}
+              </div>
+            </ng-container>
+            <ng-template #noEval>
+              <span class="aud-dash">Aucune</span>
+            </ng-template>
+          </td>
+          <td>
+            <span
+              class="aud-statut-badge"
+              [class.aud-statut-actif]="audit.actif"
+            >
+              {{ audit.actif ? "Actif" : "Inactif" }}
+            </span>
+          </td>
+          <td>
+            <div class="aud-row-actions">
+              <button
+              *ngIf="canEdit || isAuditeur"
+                class="aud-act-btn aud-act-eval"
+                title="Évaluation"
+                (click)="openEval(audit)"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="14"
+                  height="14"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+              </button>
+              <button
+              *ngIf="canEdit"
+                class="aud-act-btn"
+                title="Modifier"
+                (click)="openEdit(audit)"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="14"
+                  height="14"
+                >
+                  <path
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              </button>
+              <button
+              *ngIf="canEdit"
+                class="aud-act-btn aud-act-del"
+                title="Supprimer"
+                (click)="openDelete(audit)"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="14"
+                  height="14"
+                >
+                  <path
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="filteredAudits.length === 0">
+          <td colspan="8" class="aud-empty-row">
+            Aucun point de contrôle trouvé.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="aud-tbl-footer">
+      <span>
+        Affichage {{ (currentPage - 1) * pageSize + 1 }}–{{ lastIndex }} sur
+        {{ filteredAudits.length }} point(s) de contrôle
+      </span>
+      <div class="aud-pagination" *ngIf="totalPages > 1">
+        <button
+          class="aud-page-btn"
+          *ngFor="let pg of pagesArray()"
+          [class.active]="currentPage === pg"
+          (click)="currentPage = pg"
+        >
+          {{ pg }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ÉVALUATION -->
+<ng-container *ngIf="showEvalModal && selectedAudit">
+  <div class="audm-overlay" (click)="closeEval()">
+    <div class="audm-box audm-eval" (click)="$event.stopPropagation()">
+      <div class="audm-hdr audm-hdr-green">
+        <span class="audm-hdr-title">Évaluation – {{ selectedAudit.nom }}</span>
+        <button class="audm-hdr-close" (click)="closeEval()">✕</button>
+      </div>
+      <div class="audm-body">
+        <div class="audm-errors" *ngIf="evalErrors.length > 0">
+          <div *ngFor="let e of evalErrors">⚠ {{ e }}</div>
+        </div>
+
+        <div class="audm-fg">
+          <label>Date d'évaluation <span class="audm-req">*</span></label>
+          <input type="date" [(ngModel)]="evalForm.dateEvaluation" />
+        </div>
+
+        <div class="audm-fg">
+          <label>Conforme</label>
+          <select [(ngModel)]="evalForm.conforme">
+            <option [value]="true">Oui</option>
+            <option [value]="false">Non</option>
+          </select>
+        </div>
+
+        <div class="audm-fg">
+          <label>Évalué par</label>
+          <select [(ngModel)]="evalForm.evalueParId">
+            <option value="">— Sélectionner un évaluateur —</option>
+            <option *ngFor="let u of users" [ngValue]="u.id">
+              {{ u.nom }}
+            </option>
+          </select>
+        </div>
+
+        <div class="audm-fg">
+          <label>Commentaire</label>
+          <textarea [(ngModel)]="evalForm.commentaire" rows="4"></textarea>
+        </div>
+      </div>
+      <div class="audm-footer">
+        <button class="audm-btn-ghost" (click)="closeEval()">Annuler</button>
+        <button class="audm-btn-green" (click)="saveEval()">
+          ✓ Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+<!-- MODAL FORMULAIRE -->
+<ng-container *ngIf="showFormModal">
+  <div class="audm-overlay" (click)="closeForm()">
+    <div class="audm-box audm-form" (click)="$event.stopPropagation()">
+      <div class="audm-hdr audm-hdr-green">
+        <span class="audm-hdr-title">
+          {{ isEdit ? "Modifier l'audit" : "Nouvel audit" }}
+        </span>
+        <button class="audm-hdr-close" (click)="closeForm()">✕</button>
+      </div>
+      <div class="audm-body">
+        <div class="audm-errors" *ngIf="formErrors.length > 0">
+          <div *ngFor="let e of formErrors">⚠ {{ e }}</div>
+        </div>
+
+        <div class="audm-fg">
+          <label>Nom <span class="audm-req">*</span></label>
+          <input type="text" [(ngModel)]="form.nom" />
+        </div>
+
+        <div class="audm-grid-2">
+          <div class="audm-fg">
+            <label>Processus <span class="audm-req">*</span></label>
+            <select [(ngModel)]="form.processusId">
+              <option value="">Sélectionner</option>
+              <option *ngFor="let p of processus" [value]="p.id">
+                {{ p.code }} — {{ p.nom }}
+              </option>
+            </select>
+          </div>
+          <div class="audm-fg">
+            <label>Type</label>
+            <select [(ngModel)]="form.type">
+              <option value="DOCUMENTAIRE">Documentaire</option>
+              <option value="OPERATIONNEL">Opérationnel</option>
+              <option value="REGLEMENTAIRE">Réglementaire</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="audm-grid-2">
+          <div class="audm-fg">
+            <label>Fréquence</label>
+            <select [(ngModel)]="form.frequence">
+              <option value="QUOTIDIEN">Quotidien</option>
+              <option value="HEBDOMADAIRE">Hebdomadaire</option>
+              <option value="MENSUEL">Mensuel</option>
+              <option value="TRIMESTRIEL">Trimestriel</option>
+              <option value="ANNUEL">Annuel</option>
+            </select>
+          </div>
+          <div class="audm-fg">
+            <label>Responsable</label>
+            <select [(ngModel)]="form.responsableId">
+              <option value="">Sélectionner</option>
+              <option *ngFor="let r of responsables" [value]="r.id">
+                {{ r.nom }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="audm-fg">
+          <label>Actif</label>
+          <select [(ngModel)]="form.actif">
+            <option [ngValue]="true">Oui</option>
+            <!-- ← ngValue au lieu de value -->
+            <option [ngValue]="false">Non</option>
+          </select>
+        </div>
+
+        <div class="audm-fg">
+          <label>Description</label>
+          <textarea [(ngModel)]="form.description" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="audm-footer">
+        <button class="audm-btn-ghost" (click)="closeForm()">Annuler</button>
+        <button class="audm-btn-green" (click)="saveAudit()">
+          ✓ Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+<!-- MODAL SUPPRESSION -->
+<ng-container *ngIf="showDeleteModal && selectedAudit">
+  <div class="audm-overlay" (click)="closeDelete()">
+    <div class="audm-box audm-delete" (click)="$event.stopPropagation()">
+      <div class="audm-hdr audm-hdr-red">
+        <span class="audm-hdr-title">Confirmer la suppression</span>
+        <button class="audm-hdr-close" (click)="closeDelete()">✕</button>
+      </div>
+      <div class="audm-del-body">
+        <div class="audm-del-icon">
+          <svg
+            fill="none"
+            stroke="#ef4444"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="28"
+            height="28"
+          >
+            <path
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+        </div>
+        <p class="audm-del-txt">
+          Voulez-vous vraiment supprimer<br /><strong>{{
+            selectedAudit.nom
+          }}</strong>
+          ?
+        </p>
+        <p class="audm-del-warn">Cette action est irréversible.</p>
+      </div>
+      <div class="audm-footer">
+        <button class="audm-btn-ghost" (click)="closeDelete()">Annuler</button>
+        <button class="audm-btn-red" (click)="confirmDelete()">
+          Supprimer définitivement
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>

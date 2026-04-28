@@ -1,0 +1,77 @@
+<!-- PAGE HEADER -->
+<div class="par-page-header">
+  <div>
+    <h1 class="par-page-title">Paramètres</h1>
+    <div class="par-page-sub">Journalisation des actions — Traçabilité complète</div>
+  </div>
+  <span class="par-total">{{ totalLogs }} action(s) enregistrée(s)</span>
+</div>
+
+<!-- TABLE -->
+<div class="par-content">
+  <div class="par-table-card">
+
+    <!-- Loading -->
+    <div class="par-loading" *ngIf="loading">
+      <div class="par-spinner"></div>
+      Chargement...
+    </div>
+
+    <table class="par-table" *ngIf="!loading">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Utilisateur</th>
+          <th>Action</th>
+          <th>Type</th>
+          <th>Détails</th>
+          <th>Date &amp; Heure</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let log of logs">
+          <td class="par-id-cell">{{ log.id }}</td>
+          <td>
+            <div class="par-user-cell">
+              <span class="par-avatar">{{ log.username?.substring(0,2)?.toUpperCase() || '?' }}</span>
+              <span class="par-username">{{ log.username }}</span>
+            </div>
+          </td>
+          <td>
+            <span class="par-action-badge" [ngClass]="getActionClass(log.action)">
+              {{ getActionIcon(log.action) }} {{ getActionLabel(log.action) }}
+            </span>
+          </td>
+          <td>
+            <span class="par-entity-badge">{{ log.entityType }}</span>
+          </td>
+          <td class="par-details-cell">{{ log.details || '—' }}</td>
+          <td class="par-date-cell">{{ formatDate(log.dateAction) }}</td>
+        </tr>
+        <tr *ngIf="logs.length === 0">
+          <td colspan="6" class="par-empty-row">Aucune action enregistrée.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div class="par-footer" *ngIf="!loading && totalPages > 1">
+      <span class="par-footer-info">
+        Affichage {{ firstIndex }}–{{ lastIndex }} sur {{ totalLogs }} action(s)
+      </span>
+      <div class="par-pagination">
+        <button class="par-page-btn" (click)="goToPage(1)" [disabled]="currentPage === 1">«</button>
+        <button class="par-page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
+        <button
+          class="par-page-btn"
+          *ngFor="let pg of pagesArray()"
+          [class.active]="currentPage === pg"
+          (click)="goToPage(pg)"
+        >{{ pg }}</button>
+        <button class="par-page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">›</button>
+        <button class="par-page-btn" (click)="goToPage(totalPages)" [disabled]="currentPage === totalPages">»</button>
+      </div>
+    </div>
+
+  </div>
+</div>

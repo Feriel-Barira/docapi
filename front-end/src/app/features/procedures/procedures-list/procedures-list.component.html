@@ -1,0 +1,474 @@
+<div class="page-header-bar">
+  <div>
+    <h1>Procédures</h1>
+    <div class="sub">
+      {{ filteredProcedures.length }} procédures — instructions &
+      responsabilités
+    </div>
+  </div>
+  <button class="btn btn-primary" (click)="openCreate()" *ngIf="canEdit">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <path d="M12 4v16m8-8H4" />
+    </svg>
+    Nouvelle procédure
+  </button>
+</div>
+
+<div class="filters-bar">
+  <div class="search-box">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="8"></circle>
+      <path d="m21 21-4.35-4.35"></path>
+    </svg>
+    <input
+      type="text"
+      placeholder="Rechercher une procédure..."
+      [(ngModel)]="searchTerm"
+      (input)="onSearchChange(searchTerm)"
+    />
+  </div>
+  <select
+    [(ngModel)]="selectedProcessus"
+    (change)="onProcessusChange(selectedProcessus)"
+    class="filter-select"
+  >
+    <option value="">Tous les processus</option>
+    <option *ngFor="let p of processusDisponibles" [value]="p.id">
+      {{ p.code }} — {{ p.nom }}
+    </option>
+  </select>
+</div>
+
+<div class="content-scroll">
+  <div *ngIf="selectedProcessusLabel" class="selected-proc-title">
+    Le processus : {{ selectedProcessusLabel }}
+  </div>
+  <div class="table-container">
+    <table class="proc-table">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Titre</th>
+          <th>Processus</th>
+          <th>Responsable</th>
+          <th>Instructions</th>
+          <th>Statut</th>
+          <th style="width: 110px">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let p of paginatedProcedures">
+          <td>
+            <span class="code-cell">{{ p.code }}</span>
+          </td>
+          <td>
+            <div class="titre-cell">{{ p.titre }}</div>
+            <div class="desc-cell">{{ p.objectif }}</div>
+          </td>
+          <td>
+            <span class="proc-badge">{{ getProcessusCode(p) }}</span>
+          </td>
+          <td>
+            <div class="resp-cell">
+              <span
+                class="avatar"
+                [style.background]="getResponsableCouleur(p)"
+                >{{ getResponsableInitiales(p) }}</span
+              >
+              <span class="resp-name">{{ getResponsableNom(p) }}</span>
+            </div>
+          </td>
+          <td>
+            <span
+              class="instr-badge"
+              *ngIf="p.instructions && p.instructions.length > 0"
+            >
+              {{ p.instructions.length }} instruction{{
+                p.instructions.length > 1 ? "s" : ""
+              }}
+            </span>
+            <span
+              class="empty-badge"
+              *ngIf="!p.instructions || p.instructions.length === 0"
+              >—</span
+            >
+          </td>
+          <td>
+            <span
+              class="statut-badge"
+              [class.actif]="p.statut === 'ACTIF'"
+              [class.inactif]="p.statut === 'INACTIF'"
+            >
+              • {{ p.statut === "ACTIF" ? "Actif" : "Inactif" }}
+            </span>
+          </td>
+          <td>
+            <div class="actions-cell">
+              <button class="action-btn" title="Voir" (click)="openDetail(p)">
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+              <button
+                class="action-btn"
+                title="Modifier"
+                (click)="openEdit(p)"
+                *ngIf="canEdit"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              </button>
+              <button
+                class="action-btn danger"
+                title="Supprimer"
+                (click)="openDelete(p)"
+                *ngIf="canEdit"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="filteredProcedures.length === 0">
+          <td colspan="7" class="empty-row">Aucune procédure trouvée.</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="table-footer">
+      <span
+        >Affichage {{ (currentPage - 1) * pageSize + 1 }}–{{ lastIndex }} sur
+        {{ filteredProcedures.length }} procédure(s)</span
+      >
+      <div class="pagination" *ngIf="totalPages > 1">
+        <button
+          class="page-btn"
+          *ngFor="let pg of pagesArray()"
+          [class.active]="currentPage === pg"
+          (click)="currentPage = pg"
+        >
+          {{ pg }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL DÉTAIL ══ -->
+<ng-container *ngIf="showDetailModal && selectedProcedure">
+  <div class="prc-overlay" (click)="closeDetail()">
+    <div class="prc-modal detail-box" (click)="$event.stopPropagation()">
+      <div class="prc-header">
+        <span>Détail — {{ selectedProcedure.code }}</span>
+        <button class="prc-close" (click)="closeDetail()">✕</button>
+      </div>
+      <div class="prc-body">
+        <div class="detail-tags">
+          <span class="proc-badge-lg">{{
+            getProcessusCode(selectedProcedure)
+          }}</span>
+          <span class="statut-badge actif">{{ selectedProcedure.statut }}</span>
+          <span class="resp-inline">
+            <svg
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              style="width: 13px; height: 13px"
+            >
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            {{ getResponsableNom(selectedProcedure) }}
+          </span>
+        </div>
+        <p class="detail-desc">{{ selectedProcedure.description }}</p>
+
+        <div class="detail-section-title" *ngIf="selectedProcedure.objectif">
+          OBJECTIF
+        </div>
+        <p class="detail-text" *ngIf="selectedProcedure.objectif">
+          {{ selectedProcedure.objectif }}
+        </p>
+
+        <div
+          class="detail-section-title"
+          *ngIf="selectedProcedure.domaineApplication"
+        >
+          DOMAINE D'APPLICATION
+        </div>
+        <p class="detail-text" *ngIf="selectedProcedure.domaineApplication">
+          {{ selectedProcedure.domaineApplication }}
+        </p>
+
+        <div class="detail-section-title">
+          INSTRUCTIONS ({{ (selectedProcedure.instructions || []).length }})
+        </div>
+        <div class="instr-list">
+          <div
+            *ngFor="let ins of selectedProcedure.instructions; let i = index"
+            class="instr-item"
+          >
+            <span class="instr-num">{{ i + 1 }}</span>
+            <div class="instr-content">
+              <span class="instr-statut">{{ ins.statut }}</span>
+              <span class="instr-code">{{ ins.code }}</span>
+              <span class="instr-titre">{{ ins.titre }}</span>
+              <p class="instr-desc" *ngIf="ins.description">
+                {{ ins.description }}
+              </p>
+            </div>
+          </div>
+          <div
+            *ngIf="!selectedProcedure.instructions?.length"
+            class="empty-msg"
+          >
+            Aucune instruction.
+          </div>
+        </div>
+      </div>
+      <div class="prc-footer">
+        <button class="btn btn-ghost" (click)="closeDetail()">Fermer</button>
+        <button
+          class="btn btn-primary"
+          (click)="openEditFromDetail()"
+          *ngIf="canEdit"
+        >
+          Modifier
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+<!-- ══ MODAL FORMULAIRE ══ -->
+<ng-container *ngIf="showFormModal">
+  <div class="prc-overlay" (click)="closeForm()">
+    <div class="prc-modal form-box" (click)="$event.stopPropagation()">
+      <div class="prc-header">
+        <span>{{
+          isEdit ? "Modifier la procédure" : "Nouvelle procédure"
+        }}</span>
+        <button class="prc-close" (click)="closeForm()">✕</button>
+      </div>
+      <div class="prc-body">
+        <div class="form-section-title">Identification</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Code <span class="req">*</span></label>
+            <input
+              type="text"
+              [(ngModel)]="form.code"
+              (input)="onCodeChange()"
+              placeholder="ex: PRO-001"
+            />
+            <div *ngIf="submitted && !form.code" class="error-message">
+              Le code est requis.
+            </div>
+            <div *ngIf="codeError" class="error-message">
+              Ce code est déjà utilisé.
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Titre <span class="req">*</span></label>
+            <input
+              type="text"
+              [(ngModel)]="form.titre"
+              placeholder="Titre de la procédure"
+            />
+            <div *ngIf="submitted && !form.titre" class="error-message">
+              Le titre est requis.
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Processus parent <span class="req">*</span></label>
+            <select [(ngModel)]="form.processusId">
+              <option value="">— Sélectionner —</option>
+              <option *ngFor="let p of processusDisponibles" [value]="p.id">
+                {{ p.code }} — {{ p.nom }}
+              </option>
+            </select>
+            <div *ngIf="submitted && !form.processusId" class="error-message">
+              Le processus parent est requis.
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Responsable <span class="req">*</span></label>
+            <select [(ngModel)]="form.responsableId">
+              <option value="">— Sélectionner —</option>
+              <option *ngFor="let r of responsablesDisponibles" [value]="r.id">
+                {{ r.nom }}
+              </option>
+            </select>
+            <div *ngIf="submitted && !form.responsableId" class="error-message">
+              Le responsable est requis.
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Statut</label>
+            <select [(ngModel)]="form.statut">
+              <option value="ACTIF">Actif</option>
+              <option value="INACTIF">Inactif</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Objectif</label>
+            <textarea
+              [(ngModel)]="form.objectif"
+              rows="2"
+              placeholder="Objectif de la procédure..."
+            ></textarea>
+          </div>
+          <div class="form-group full">
+            <label>Domaine d'application</label>
+            <input
+              type="text"
+              [(ngModel)]="form.domaineApplication"
+              placeholder="ex: Tous les services qualité"
+            />
+          </div>
+          <div class="form-group full">
+            <label>Description</label>
+            <textarea
+              [(ngModel)]="form.description"
+              rows="3"
+              placeholder="Description détaillée..."
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="form-section-sep"></div>
+        <div class="instr-header">
+          <div class="form-section-title" style="margin-bottom: 0">
+            Instructions
+          </div>
+          <button
+            type="button"
+            class="btn-add-instr"
+            (click)="addInstruction()"
+          >
+            + Ajouter une instruction
+          </button>
+        </div>
+        <div
+          *ngFor="let ins of form.instructions; let i = index"
+          class="instr-form-item"
+        >
+          <div class="instr-num-badge">{{ i + 1 }}</div>
+          <div class="instr-form-fields">
+            <div class="instr-row">
+              <div class="form-group">
+                <label>Code instruction</label>
+                <input
+                  type="text"
+                  [(ngModel)]="ins.code"
+                  placeholder="INS-001"
+                />
+              </div>
+              <div class="form-group" style="position: relative" ;>
+                <label>Titre</label>
+                <div style="display: flex; align-items: center; gap: 4px">
+                  <input
+                    type="text"
+                    [(ngModel)]="ins.titre"
+                    placeholder="Titre de l'instruction"
+                    style="flex: 1"
+                  />
+                  <button
+                    type="button"
+                    class="rm-instr-btn"
+                    (click)="removeInstruction(i)"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="form-group full">
+              <label>Description</label>
+              <input
+                type="text"
+                [(ngModel)]="ins.description"
+                placeholder="Description de l'instruction..."
+              />
+            </div>
+            <div class="form-group">
+              <label>Statut</label>
+              <select [(ngModel)]="ins.statut">
+                <option value="ACTIF">Actif</option>
+                <option value="INACTIF">Inactif</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="prc-footer">
+        <button class="btn btn-ghost" (click)="closeForm()">Annuler</button>
+        <button class="btn btn-primary" (click)="saveProcedure()">
+          ✓ Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+<!-- ══ MODAL SUPPRESSION ══ -->
+<ng-container *ngIf="showDeleteModal && selectedProcedure">
+  <div class="prc-overlay" (click)="closeDelete()">
+    <div class="prc-modal delete-box" (click)="$event.stopPropagation()">
+      <div class="prc-header delete-header">
+        <span>Confirmer la suppression</span>
+        <button class="prc-close" (click)="closeDelete()">✕</button>
+      </div>
+      <div class="delete-body">
+        <div class="delete-icon-wrap">
+          <svg
+            fill="none"
+            stroke="#ef4444"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+        </div>
+        <p>
+          Voulez-vous vraiment supprimer<br /><strong>{{
+            selectedProcedure.titre
+          }}</strong>
+          ?
+        </p>
+        <p class="delete-warn">Cette action est irréversible.</p>
+      </div>
+      <div class="delete-footer">
+        <button class="btn btn-ghost" (click)="closeDelete()">Annuler</button>
+        <button class="btn btn-danger" (click)="confirmDelete()">
+          Supprimer définitivement
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>

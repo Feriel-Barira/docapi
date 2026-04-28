@@ -1,0 +1,324 @@
+<!-- Overlay cliquable pour fermer -->
+<div class="modal-overlay" (click)="onCancel()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">
+        {{ isEdit ? "Modifier le processus" : "Nouveau processus" }}
+      </div>
+      <button class="modal-close" (click)="onCancel()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <form [formGroup]="processForm">
+        <!-- ── IDENTIFICATION ── -->
+        <div class="form-section-title">Identification</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Code <span class="req">*</span></label>
+            <input type="text" formControlName="code" placeholder="ex: P-01" />
+            <div
+              *ngIf="
+                processForm.get('code')?.invalid &&
+                processForm.get('code')?.touched
+              "
+              class="error-message"
+            >
+              Le code est requis
+            </div>
+            <div
+              *ngIf="processForm.get('code')?.errors?.['codeTaken']"
+              class="error-message"
+            >
+              Ce code est déjà utilisé dans votre organisation.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Nom <span class="req">*</span></label>
+            <input
+              type="text"
+              formControlName="name"
+              placeholder="Nom du processus"
+            />
+            <div
+              *ngIf="
+                processForm.get('name')?.invalid &&
+                processForm.get('name')?.touched
+              "
+              class="error-message"
+            >
+              Le nom est requis
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Type <span class="req">*</span></label>
+            <select formControlName="type">
+              <option value="">— Sélectionner —</option>
+              <option value="PILOTAGE">Pilotage</option>
+              <option value="REALISATION">Réalisation</option>
+              <option value="SUPPORT">Support</option>
+            </select>
+            <div
+              *ngIf="
+                processForm.get('type')?.invalid &&
+                processForm.get('type')?.touched
+              "
+              class="error-message"
+            >
+              Le type est requis
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Pilote <span class="req">*</span></label>
+            <select formControlName="piloteId">
+              <option value="">— Sélectionner —</option>
+              <option *ngFor="let p of pilotesDisponibles" [value]="p.id">
+                {{ p.nom }}
+              </option>
+            </select>
+            <div
+              *ngIf="
+                processForm.get('piloteId')?.invalid &&
+                processForm.get('piloteId')?.touched
+              "
+              class="error-message"
+            >
+              Le pilote est requis
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Statut</label>
+            <select formControlName="statut">
+              <option value="ACTIF">Actif</option>
+              <option value="INACTIF">Inactif</option>
+            </select>
+          </div>
+
+          <div class="form-group full">
+            <label>Description</label>
+            <textarea
+              formControlName="description"
+              rows="3"
+              placeholder="Description du processus..."
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- ── ACTEURS ── -->
+        <div class="form-section-sep"></div>
+        <div class="actors-header">
+          <div class="form-section-title" style="margin-bottom: 0">
+            Acteurs du processus
+          </div>
+          <button type="button" class="btn-add-actor" (click)="addActor()">
+            + Ajouter un acteur
+          </button>
+        </div>
+        <div *ngIf="actors.length === 0" class="actors-empty">
+          Aucun acteur ajouté. Le pilote est automatiquement l'acteur principal.
+        </div>
+        <div *ngFor="let actor of actors; let i = index" class="actor-row">
+          <select
+            [(ngModel)]="actors[i].utilisateurId"
+            [ngModelOptions]="{ standalone: true }"
+            class="actor-select"
+            (change)="onActeurUserChange(i, actors[i].utilisateurId)"
+          >
+            <option value="">— Utilisateur —</option>
+            <option *ngFor="let p of pilotesDisponibles" [value]="p.id">
+              {{ p.nom }}
+            </option>
+          </select>
+          <select
+            [(ngModel)]="actors[i].typeActeur"
+            [ngModelOptions]="{ standalone: true }"
+            class="actor-select"
+          >
+            <option value="PILOTE">Pilote</option>
+            <option value="COPILOTE">Copilote</option>
+            <option value="CONTRIBUTEUR">Contributeur</option>
+            <option value="OBSERVATEUR">Observateur</option>
+          </select>
+          <button type="button" class="rm-btn" (click)="removeActor(i)">
+            <svg
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- ── FINALITÉS & OBJECTIFS ── -->
+        <div class="form-section-sep"></div>
+        <div class="form-section-title">Finalités &amp; Objectifs</div>
+
+        <ng-container *ngFor="let section of finalistesSections">
+          <div class="form-group full">
+            <label>{{ section.label }}</label>
+            <div class="array-box">
+              <div
+                class="array-box-header"
+                (click)="toggleSection(section.key)"
+              >
+                <span>{{ section.label }}</span>
+                <span class="acc-chevron">{{
+                  expandedSections[section.key] ? "−" : "+"
+                }}</span>
+              </div>
+              <div *ngIf="expandedSections[section.key]" class="array-box-body">
+                <div class="add-row">
+                  <textarea
+                    [(ngModel)]="inputBuffers[section.key]"
+                    [ngModelOptions]="{ standalone: true }"
+                    rows="3"
+                    [placeholder]="section.placeholder"
+                    class="add-textarea"
+                  ></textarea>
+                  <button
+                    type="button"
+                    class="btn-ajouter"
+                    (click)="addItemFromBuffer(section.key)"
+                  >
+                    Ajouter
+                  </button>
+                </div>
+                <div
+                  *ngFor="let item of arrayFields[section.key]; let i = index"
+                  class="item-line"
+                >
+                  <span class="bullet">•</span>
+                  <textarea
+                    [(ngModel)]="arrayFields[section.key][i]"
+                    [ngModelOptions]="{ standalone: true }"
+                    rows="2"
+                    class="item-textarea"
+                  ></textarea>
+                  <button
+                    type="button"
+                    class="btn-rm-x"
+                    (click)="removeItem(section.key, i)"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Objectifs qualité -->
+        <div class="form-group full">
+          <label>Objectifs qualité</label>
+          <div class="array-box">
+            <div class="array-box-header" (click)="toggleSection('objectifs')">
+              <span>Objectifs qualité</span>
+              <span class="acc-chevron">{{
+                expandedSections["objectifs"] ? "−" : "+"
+              }}</span>
+            </div>
+            <div *ngIf="expandedSections['objectifs']" class="array-box-body">
+              <div class="add-row">
+                <textarea
+                  [(ngModel)]="inputBuffers['objectifs']"
+                  [ngModelOptions]="{ standalone: true }"
+                  rows="3"
+                  placeholder="Ex : Taux de conformité > 95%..."
+                  class="add-textarea"
+                ></textarea>
+                <button
+                  type="button"
+                  class="btn-ajouter"
+                  (click)="addKPIFromBuffer()"
+                >
+                  Ajouter
+                </button>
+              </div>
+              <div *ngFor="let kpi of kpis; let i = index" class="item-line">
+                <span class="bullet">•</span>
+                <textarea
+                  [(ngModel)]="kpis[i]"
+                  [ngModelOptions]="{ standalone: true }"
+                  rows="2"
+                  class="item-textarea"
+                ></textarea>
+                <button type="button" class="btn-rm-x" (click)="removeKPI(i)">
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── PÉRIMÈTRE & FLUX ── -->
+        <div class="form-section-sep"></div>
+        <div class="form-section-title">Périmètre &amp; Flux de données</div>
+
+        <ng-container *ngFor="let field of perimeterSections">
+          <div class="form-group full">
+            <label>{{ field.label }}</label>
+            <div class="array-box">
+              <div class="array-box-header" (click)="toggleSection(field.key)">
+                <span>{{ field.label }}</span>
+                <span class="acc-chevron">{{
+                  expandedSections[field.key] ? "−" : "+"
+                }}</span>
+              </div>
+              <div *ngIf="expandedSections[field.key]" class="array-box-body">
+                <div class="add-row">
+                  <textarea
+                    [(ngModel)]="inputBuffers[field.key]"
+                    [ngModelOptions]="{ standalone: true }"
+                    rows="3"
+                    [placeholder]="field.placeholder"
+                    class="add-textarea"
+                  ></textarea>
+                  <button
+                    type="button"
+                    class="btn-ajouter"
+                    (click)="addItemFromBuffer(field.key)"
+                  >
+                    Ajouter
+                  </button>
+                </div>
+                <div
+                  *ngFor="let item of arrayFields[field.key]; let i = index"
+                  class="item-line"
+                >
+                  <span class="bullet">•</span>
+                  <textarea
+                    [(ngModel)]="arrayFields[field.key][i]"
+                    [ngModelOptions]="{ standalone: true }"
+                    rows="2"
+                    class="item-textarea"
+                  ></textarea>
+                  <button
+                    type="button"
+                    class="btn-rm-x"
+                    (click)="removeItem(field.key, i)"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+      </form>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" (click)="onCancel()">
+        Annuler
+      </button>
+      <button type="button" class="btn btn-primary" (click)="onSave()">
+        ✓ Enregistrer
+      </button>
+    </div>
+  </div>
+</div>

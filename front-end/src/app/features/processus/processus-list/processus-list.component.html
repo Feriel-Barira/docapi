@@ -1,0 +1,346 @@
+<div class="page-header-bar">
+  <div>
+    <h1>Processus</h1>
+    <div class="sub">
+      Cartographie — {{ filteredProcesses.length }} processus actifs
+    </div>
+  </div>
+  <div class="ph-actions">
+    <div class="view-toggle">
+      <button
+        class="toggle-btn"
+        [class.active]="viewMode === 'cards'"
+        (click)="viewMode = 'cards'"
+        title="Vue cartes"
+      >
+        <svg
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+        </svg>
+      </button>
+      <button
+        class="toggle-btn"
+        [class.active]="viewMode === 'table'"
+        (click)="viewMode = 'table'"
+        title="Vue tableau"
+      >
+        <svg
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+        >
+          <path d="M3 6h18M3 12h18M3 18h18"></path>
+        </svg>
+      </button>
+    </div>
+    <button class="btn btn-primary" (click)="openCreateModal()" *ngIf="canEdit">
+      <svg
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+      >
+        <path d="M12 4v16m8-8H4" />
+      </svg>
+      Nouveau processus
+    </button>
+  </div>
+</div>
+
+<div class="filters-bar">
+  <div class="search-box">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="8"></circle>
+      <path d="m21 21-4.35-4.35"></path>
+    </svg>
+    <input
+      type="text"
+      placeholder="Rechercher un processus..."
+      [(ngModel)]="searchTerm"
+      (input)="onSearchChange(searchTerm)"
+    />
+  </div>
+  <div class="filter-group">
+    <select
+      [(ngModel)]="selectedType"
+      (change)="onTypeFilterChange(selectedType)"
+    >
+      <option value="">Tous</option>
+      <option [value]="ProcessType.PILOTAGE">Pilotage</option>
+      <option [value]="ProcessType.REALISATION">Réalisation</option>
+      <option [value]="ProcessType.SUPPORT">Support</option>
+    </select>
+  </div>
+</div>
+
+<div class="content-scroll">
+  <!-- VUE CARTES -->
+  <div *ngIf="viewMode === 'cards'" class="proc-grid">
+    <div
+      *ngFor="let process of filteredProcesses"
+      class="proc-card"
+      [ngClass]="getTypeClass(process.type)"
+    >
+      <div class="pc-top-row">
+        <span class="pc-code">{{ process.code }}</span>
+        <div
+          class="card-actions"
+          (click)="$event.stopPropagation()"
+          *ngIf="canEdit"
+        >
+          <button
+            class="row-btn"
+            (click)="openEditModal(process)"
+            title="Modifier"
+          >
+            <svg
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              />
+            </svg>
+          </button>
+          <button
+            class="row-btn del"
+            (click)="confirmDelete(process)"
+            title="Supprimer"
+          >
+            <svg
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <span class="pc-type-badge" [ngClass]="getTypeBadgeClass(process.type)">{{
+        getTypeLabel(process.type)
+      }}</span>
+      <div class="pc-name">{{ process.name }}</div>
+      <div class="pc-objective">{{ process.objective }}</div>
+      <div class="pc-pilot-row">
+        <span class="pc-pilot-label">Pilote :</span>
+        <span class="pc-pilot-value">{{ process.pilot }}</span>
+        <span
+          *ngIf="process.actors && process.actors.length > 0"
+          class="pc-actors-count"
+          >&nbsp;· {{ process.actors.length }} autre(s) acteur(s)</span
+        >
+      </div>
+      <div class="pc-kpi-tags" *ngIf="process.kpis && process.kpis.length > 0">
+        <span class="pc-kpi-tag" *ngFor="let kpi of process.kpis.slice(0, 2)">{{
+          kpi
+        }}</span>
+      </div>
+      <div class="pc-footer-new">
+        <span class="pc-counts"
+          >{{ process.proceduresCount || 0 }} procédures ·
+          {{ process.documentsCount || 0 }} docs</span
+        >
+        <span
+          class="pc-status-badge"
+          [class.inactive]="process.statut === 'INACTIF'"
+        >
+          {{ process.statut === "ACTIF" ? "Actif" : "Inactif" }}
+        </span>
+      </div>
+    </div>
+    <div class="proc-card add" (click)="openCreateModal()" *ngIf="canEdit">
+      <svg
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+        style="width: 22px; height: 22px"
+      >
+        <path d="M12 4v16m8-8H4" />
+      </svg>
+      <div style="font-size: 12.5px; font-weight: 600">Nouveau processus</div>
+    </div>
+  </div>
+
+  <!-- VUE TABLEAU -->
+  <div *ngIf="viewMode === 'table'" class="table-container">
+    <table class="proc-table">
+      <thead>
+        <tr>
+          <th>Processus</th>
+          <th>Type</th>
+          <th>Statut</th>
+          <th>Pilote</th>
+          <th>Acteurs</th>
+          <th>Proc.</th>
+          <th>Docs</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let process of paginatedProcesses">
+          <td>
+            <div class="table-name">{{ process.name }}</div>
+            <div class="table-code-sub">{{ process.code }}</div>
+          </td>
+          <td>
+            <span
+              class="table-type-badge"
+              [ngClass]="getTypeBadgeClass(process.type)"
+            >
+              {{ getTypeLabel(process.type) }}
+            </span>
+          </td>
+          <td>
+            <span
+              class="table-status-badge"
+              [class.inactive]="process.statut === 'INACTIF'"
+            >
+              {{ process.statut === "ACTIF" ? "Actif" : "Inactif" }}
+            </span>
+          </td>
+          <td>
+            <div class="resp-cell">
+              <span
+                class="avatar"
+                [style.background]="getPilotColor(process)"
+                >{{ getPilotInitiales(process) }}</span
+              >
+              <span class="resp-name">{{ process.pilot }}</span>
+            </div>
+          </td>
+          <td>
+            <span class="table-count-badge">{{
+              process.acteursCount || 0
+            }}</span>
+          </td>
+          <td>
+            <span class="table-count-badge">{{
+              process.proceduresCount || 0
+            }}</span>
+          </td>
+          <td>
+            <span class="table-count-badge">{{
+              process.documentsCount || 0
+            }}</span>
+          </td>
+          <td>
+            <div class="table-actions" *ngIf="canEdit">
+              <button
+                class="row-btn"
+                (click)="openEditModal(process)"
+                title="Modifier"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              </button>
+              <button
+                class="row-btn del"
+                (click)="confirmDelete(process)"
+                title="Supprimer"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="filteredProcesses.length === 0">
+          <td colspan="8" class="empty-row">Aucun processus trouvé.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="table-footer-count">
+      <span>
+        Affichage {{ (currentPage - 1) * pageSize + 1 }}–{{ lastIndex }} sur
+        {{ filteredProcesses.length }} processus
+      </span>
+      <div class="pagination" *ngIf="totalPages > 1">
+        <button
+          class="page-btn"
+          *ngFor="let pg of pagesArray()"
+          [class.active]="currentPage === pg"
+          (click)="currentPage = pg"
+        >
+          {{ pg }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL FORMULAIRE ══════════ -->
+<app-process-form-modal
+  *ngIf="showModal"
+  [process]="selectedProcess"
+  (save)="saveProcess($event)"
+  (close)="closeModal()"
+>
+</app-process-form-modal>
+
+<!-- ══════════ DIALOG SUPPRESSION ══════════ -->
+<div
+  class="delete-overlay"
+  *ngIf="showDeleteModal"
+  (click)="closeDeleteModal()"
+>
+  <div class="delete-dialog" (click)="$event.stopPropagation()">
+    <div class="delete-icon">
+      <svg
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        viewBox="0 0 24 24"
+      >
+        <path
+          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+        />
+      </svg>
+    </div>
+    <h3>Supprimer le processus</h3>
+    <p>
+      Voulez-vous vraiment supprimer
+      <strong>{{ processToDelete?.name }}</strong> ?<br />
+      Cette action est irréversible.
+    </p>
+    <div class="delete-actions">
+      <button class="btn btn-ghost" (click)="closeDeleteModal()">
+        Annuler
+      </button>
+      <button class="btn btn-danger" (click)="deleteProcess()">
+        Supprimer
+      </button>
+    </div>
+  </div>
+</div>

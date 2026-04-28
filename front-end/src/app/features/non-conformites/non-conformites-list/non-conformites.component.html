@@ -1,0 +1,912 @@
+<!-- src/app/features/non-conformites/non-conformites-list/non-conformites.component.html -->
+
+<!-- PAGE HEADER -->
+<div class="nc-page-header">
+  <div>
+    <h1 class="nc-page-title">Non-Conformités</h1>
+    <div class="nc-page-sub">{{ filteredNC.length }} NC actives</div>
+  </div>
+  <button class="nc-new-btn" (click)="openCreate()" *ngIf="canEdit">
+    <svg
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.5"
+      viewBox="0 0 24 24"
+      width="15"
+      height="15"
+    >
+      <path d="M12 4v16m8-8H4" />
+    </svg>
+    Nouvelle NC
+  </button>
+</div>
+
+<!-- CONTENT -->
+<div class="nc-content">
+  <div class="nc-table-card">
+    <!-- TOOLBAR -->
+    <div class="nc-toolbar">
+      <div class="nc-search-box">
+        <svg
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          width="14"
+          height="14"
+          style="flex-shrink: 0; color: #9ca3af"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <path d="M21 21l-4.35-4.35" />
+        </svg>
+        <input
+          type="text"
+          placeholder="Rechercher..."
+          [(ngModel)]="searchTerm"
+          (input)="onSearchChange()"
+        />
+      </div>
+      <div class="nc-filters">
+        <button
+          class="nc-fbtn"
+          [class.nc-fbtn-on]="statutFilter === ''"
+          (click)="setStatutFilter('')"
+        >
+          Toutes
+        </button>
+        <button
+          class="nc-fbtn"
+          [class.nc-fbtn-on]="statutFilter === 'OUVERTE'"
+          (click)="setStatutFilter('OUVERTE')"
+        >
+          Ouvertes
+        </button>
+        <button
+          class="nc-fbtn"
+          [class.nc-fbtn-on]="statutFilter === 'ANALYSE'"
+          (click)="setStatutFilter('ANALYSE')"
+        >
+          Analyse
+        </button>
+        <button
+          class="nc-fbtn"
+          [class.nc-fbtn-on]="statutFilter === 'ACTION_EN_COURS'"
+          (click)="setStatutFilter('ACTION_EN_COURS')"
+        >
+          En cours
+        </button>
+        <button
+          class="nc-fbtn"
+          [class.nc-fbtn-on]="statutFilter === 'CLOTUREE'"
+          (click)="setStatutFilter('CLOTUREE')"
+        >
+          Clôturées
+        </button>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <table class="nc-tbl">
+      <thead>
+        <tr>
+          <th>RÉFÉRENCE</th>
+          <th>DESCRIPTION</th>
+          <th>PROCESSUS</th>
+          <th>SOURCE</th>
+          <th>GRAVITÉ</th>
+          <th>STATUT</th>
+          <th>AVANCEMENT AC</th>
+          <th>RESPONSABLE</th>
+          <th>DATE DETECTION</th>
+          <th style="width: 108px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let nc of paginatedNC">
+          <td class="nc-ref-cell">{{ nc.reference }}</td>
+          <td>
+            <div class="nc-desc-main">{{ nc.description }}</div>
+            <div class="nc-desc-sub">{{ getNatureTypeLine(nc) }}</div>
+          </td>
+          <td>
+            <span class="nc-badge nc-proc" *ngIf="nc.processusCode">{{
+              nc.processusCode
+            }}</span>
+            <span class="nc-dash" *ngIf="!nc.processusCode">—</span>
+          </td>
+          <td class="nc-small-muted">{{ nc.source }}</td>
+          <td>
+            <span class="nc-badge" [ngClass]="getGraviteClass(nc.gravite)">{{
+              nc.gravite
+            }}</span>
+          </td>
+          <td>
+            <span class="nc-badge" [ngClass]="getStatutClass(nc.statut)">{{
+              getStatutLabel(nc.statut)
+            }}</span>
+          </td>
+          <td>
+            <div class="nc-prog">
+              <div class="nc-prog-track">
+                <div
+                  class="nc-prog-fill"
+                  [style.width]="(nc.avancementAC || 0) + '%'"
+                  [class.nc-prog-green]="(nc.avancementAC || 0) === 100"
+                ></div>
+              </div>
+              <span class="nc-prog-txt">{{ nc.avancementAC || 0 }}%</span>
+            </div>
+          </td>
+          <td class="nc-small">{{ nc.responsableNom || "—" }}</td>
+          <td class="nc-small-muted">{{ nc.dateDetection }}</td>
+          <td>
+            <div class="nc-actions">
+              <button class="nc-act-btn" title="Voir" (click)="openDetail(nc)">
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="14"
+                  height="14"
+                >
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+              <button
+                *ngIf="canEdit"
+                class="nc-act-btn"
+                title="Modifier"
+                (click)="openEdit(nc)"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="14"
+                  height="14"
+                >
+                  <path
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              </button>
+              <button
+                *ngIf="canEdit"
+                class="nc-act-btn nc-act-del"
+                title="Supprimer"
+                (click)="openDelete(nc)"
+              >
+                <svg
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  width="14"
+                  height="14"
+                >
+                  <path
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="filteredNC.length === 0">
+          <td colspan="10" class="nc-empty-row">
+            Aucune non-conformité trouvée.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="nc-tbl-footer">
+      <span>
+        Affichage {{ (currentPage - 1) * pageSize + 1 }}–{{ lastIndex }} sur
+        {{ filteredNC.length }} non-conformité(s)
+      </span>
+      <div class="nc-pagination" *ngIf="totalPages > 1">
+        <button
+          class="nc-page-btn"
+          *ngFor="let pg of pagesArray()"
+          [class.active]="currentPage === pg"
+          (click)="currentPage = pg"
+        >
+          {{ pg }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ MODAL DÉTAIL ══════════════════════════════════════════ -->
+<ng-container *ngIf="showDetailModal && selectedNC">
+  <div class="ncm-overlay" (click)="closeDetail()">
+    <div class="ncm-box ncm-detail" (click)="$event.stopPropagation()">
+      <div class="ncm-hdr ncm-hdr-green">
+        <div style="flex: 1; min-width: 0">
+          <div class="ncm-hdr-ref">{{ selectedNC.reference }}</div>
+          <div class="ncm-hdr-title">{{ selectedNC.description }}</div>
+        </div>
+        <div style="display: flex; gap: 6px; flex-shrink: 0">
+          <button class="ncm-hdr-close" (click)="closeDetail()">✕</button>
+        </div>
+      </div>
+
+      <div class="ncm-body">
+        <div class="ncm-grid-2">
+          <div class="ncm-field">
+            <div class="ncm-label">GRAVITÉ</div>
+            <span
+              class="nc-badge"
+              [ngClass]="getGraviteClass(selectedNC.gravite)"
+              >{{ selectedNC.gravite }}</span
+            >
+          </div>
+          <div class="ncm-field">
+            <div class="ncm-label">STATUT</div>
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex-wrap: wrap;
+              "
+            >
+              <span
+                class="nc-badge"
+                [ngClass]="getStatutClass(selectedNC.statut)"
+              >
+                {{ getStatutLabel(selectedNC.statut) }}
+              </span>
+              <button
+                *ngIf="canEdit && selectedNC?.statut === 'OUVERTE'"
+                class="ncm-statut-btn"
+                (click)="changeStatut(selectedNC, 'ANALYSE')"
+              >
+                Lancer analyse
+              </button>
+              <button
+                *ngIf="canEdit && selectedNC?.statut === 'ANALYSE'"
+                class="ncm-statut-btn"
+                (click)="changeStatut(selectedNC, 'ACTION_EN_COURS')"
+              >
+                Démarrer action
+              </button>
+              <button
+                *ngIf="canEdit && selectedNC?.statut === 'ACTION_EN_COURS'"
+                class="ncm-statut-btn"
+                (click)="changeStatut(selectedNC, 'CLOTUREE')"
+              >
+                Clôturer
+              </button>
+              <span
+                *ngIf="selectedNC?.statut === 'CLOTUREE'"
+                style="color: #16a34a; font-weight: 500"
+              >
+                ✔ NC clôturée
+              </span>
+            </div>
+          </div>
+          <div class="ncm-field">
+            <div class="ncm-label">SOURCE</div>
+            <div class="ncm-val">{{ selectedNC.source }}</div>
+          </div>
+          <div class="ncm-field">
+            <div class="ncm-label">NATURE</div>
+            <div class="ncm-val">{{ selectedNC.nature }}</div>
+          </div>
+          <div class="ncm-field">
+            <div class="ncm-label">TYPE</div>
+            <div class="ncm-val">{{ selectedNC.type }}</div>
+          </div>
+          <div class="ncm-field">
+            <div class="ncm-label">DATE DÉTECTION</div>
+            <div class="ncm-val">{{ selectedNC.dateDetection }}</div>
+          </div>
+          <div class="ncm-field">
+            <div class="ncm-label">PROCESSUS</div>
+            <span class="nc-badge nc-proc" *ngIf="selectedNC.processusCode">{{
+              selectedNC.processusCode
+            }}</span
+            ><span class="nc-dash" *ngIf="!selectedNC.processusCode">—</span>
+          </div>
+          <div class="ncm-field">
+            <div class="ncm-label">RESPONSABLE</div>
+            <div class="ncm-val">{{ selectedNC.responsableNom || "—" }}</div>
+          </div>
+          <div class="ncm-field">
+            <div class="ncm-label">DÉTECTÉ PAR</div>
+            <div class="ncm-val">{{ selectedNC.detecteParNom || "—" }}</div>
+          </div>
+        </div>
+
+        <hr class="ncm-sep" />
+
+        <!-- SECTION ANALYSE DES CAUSES -->
+        <div class="ncm-section-title" style="margin-top: 15px">
+          ANALYSE DES CAUSES
+          <button
+            class="ncm-btn-green-small"
+            (click)="openAnalyseModal()"
+            *ngIf="
+              canEdit &&
+              !selectedNC.analyseCause &&
+              selectedNC.statut === 'ANALYSE'
+            "
+          >
+            + Ajouter analyse
+          </button>
+        </div>
+
+        <div
+          *ngIf="selectedNC.analyseCause"
+          style="
+            background: #f0fdf4;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 10px 0;
+          "
+        >
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              flex-wrap: wrap;
+              gap: 15px;
+            "
+          >
+            <!-- Informations de l'analyse -->
+            <div style="flex: 1">
+              <div style="display: flex; flex-direction: column; gap: 8px">
+                <div>
+                  <strong>Méthode :</strong>
+                  {{
+                    getMethodeAnalyseLabel(
+                      selectedNC.analyseCause.methodeAnalyse
+                    )
+                  }}
+                </div>
+                <div>
+                  <strong>Description :</strong>
+                  <span style="word-break: break-word">
+                    {{ selectedNC.analyseCause.description }}
+                  </span>
+                </div>
+                <div style="font-size: 12px; color: #6b7280">
+                  Analyse le
+                  {{ selectedNC.analyseCause.dateAnalyse | date: "dd/MM/yyyy" }}
+                  par {{ selectedNC.analyseCause.analyseParNom }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Bouton Modifier -->
+            <button
+              *ngIf="canEdit"
+              class="ncm-edit-analyse-btn"
+              (click)="editAnalyse()"
+              style="align-self: flex-start"
+            >
+              Modifier
+            </button>
+          </div>
+        </div>
+
+        <hr class="ncm-sep" />
+
+        <!-- SECTION ACTIONS CORRECTIVES -->
+        <div class="ncm-ac-hdr">
+          <div class="ncm-ac-title">
+            Actions correctives
+            <span class="ncm-ac-pct"
+              >{{ selectedNC.avancementAC || 0 }}% réalisées</span
+            >
+            <div
+              class="nc-prog-track"
+              style="
+                width: 80px;
+                display: inline-block;
+                vertical-align: middle;
+                margin-left: 8px;
+              "
+            >
+              <div
+                class="nc-prog-fill"
+                [style.width]="(selectedNC.avancementAC || 0) + '%'"
+                [class.nc-prog-green]="(selectedNC.avancementAC || 0) === 100"
+              ></div>
+            </div>
+          </div>
+          <button
+            *ngIf="canEdit && selectedNC.statut === 'ACTION_EN_COURS'"
+            class="ncm-btn-green"
+            (click)="toggleACForm()"
+          >
+            <svg
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              viewBox="0 0 24 24"
+              width="13"
+              height="13"
+            >
+              <path d="M12 4v16m8-8H4" />
+            </svg>
+            Ajouter AC
+          </button>
+        </div>
+
+        <!-- AC add form -->
+        <div class="ncm-ac-form" *ngIf="showACForm">
+          <div class="ncm-ac-form-grid">
+            <div class="ncm-fg full">
+              <label>Description *</label
+              ><textarea
+                [(ngModel)]="acForm.description"
+                rows="2"
+                placeholder="Description de l'action..."
+              ></textarea>
+            </div>
+            <div class="ncm-fg">
+              <label>Type</label
+              ><select [(ngModel)]="acForm.type">
+                <option value="CURATIVE">Curative</option>
+                <option value="CORRECTIVE">Corrective</option>
+                <option value="PREVENTIVE">Préventive</option>
+              </select>
+            </div>
+            <div class="ncm-fg">
+              <label>Responsable</label
+              ><select [(ngModel)]="acForm.responsableId">
+                <option value="">— Sélectionner —</option>
+                <option *ngFor="let r of responsables" [value]="r.id">
+                  {{ r.nom }}
+                </option>
+              </select>
+            </div>
+            <div class="ncm-fg">
+              <label>Échéance</label
+              ><input type="date" [(ngModel)]="acForm.echeance" />
+            </div>
+          </div>
+          <div class="ncm-ac-form-footer">
+            <button class="ncm-btn-ghost" (click)="toggleACForm()">
+              Annuler</button
+            ><button class="ncm-btn-green" (click)="addAC()">Ajouter</button>
+          </div>
+        </div>
+
+        <!-- AC table -->
+        <!-- AC table -->
+        <table
+          class="ncm-ac-tbl"
+          *ngIf="
+            selectedNC.actionsCorrectives &&
+            selectedNC.actionsCorrectives.length > 0
+          "
+        >
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Type</th>
+              <th>Responsable</th>
+              <th>Échéance</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let ac of selectedNC.actionsCorrectives">
+              <td>{{ ac.description }}</td>
+              <td class="nc-small-muted">{{ ac.type }}</td>
+              <td class="nc-small">{{ ac.responsableNom || "—" }}</td>
+              <td class="nc-small-muted">{{ ac.echeance || "—" }}</td>
+              <td class="ac-actions-cell">
+                <div class="ac-statut-buttons">
+                  <button
+                    *ngFor="let opt of getACStatutOptions(ac.statut)"
+                    class="ac-statut-btn"
+                    [class.active]="ac.statut === opt.value"
+                    (click)="
+                      canEdit ? updateACStatutForce(ac, opt.value) : null
+                    "
+                  >
+                    {{ opt.label }}
+                  </button>
+                </div>
+                <div class="ac-preuve">
+                  <div
+                    *ngIf="ac.preuveEnregistrementId; else noPreuve"
+                    class="ac-preuve-attached"
+                  >
+                    <button
+                      class="ac-download-btn"
+                      (click)="downloadPreuve(ac.preuveEnregistrementId)"
+                      title="Télécharger la preuve"
+                    >
+                      <svg
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                        width="12"
+                        height="12"
+                      >
+                        <path
+                          d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"
+                        />
+                      </svg>
+                      Télécharger
+                    </button>
+                    <button
+                      *ngIf="canEdit"
+                      class="ac-detach-btn"
+                      (click)="detacherPreuve(ac)"
+                      title="Détacher"
+                    >
+                      <svg
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        viewBox="0 0 24 24"
+                        width="11"
+                        height="11"
+                      >
+                        <path d="M18 6L6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <ng-template #noPreuve>
+                    <button
+                      *ngIf="canEdit"
+                      class="ac-join-btn"
+                      (click)="ouvrirPicker(ac)"
+                      title="Joindre une preuve"
+                    >
+                      <svg
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                        width="12"
+                        height="12"
+                      >
+                        <path
+                          d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"
+                        />
+                      </svg>
+                      Joindre
+                    </button>
+                  </ng-template>
+                </div>
+                <button
+                  *ngIf="canEdit"
+                  class="nc-act-btn nc-act-del"
+                  (click)="deleteAC(ac)"
+                >
+                  <svg
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="13"
+                    height="13"
+                  >
+                    <path
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div
+          class="ncm-empty-ac"
+          *ngIf="
+            !selectedNC.actionsCorrectives ||
+            selectedNC.actionsCorrectives.length === 0
+          "
+        >
+          Aucune action corrective enregistrée.
+        </div>
+
+        <!-- SECTION HISTORIQUE -->
+        <hr class="ncm-sep" />
+        <div class="ncm-section-title">
+          HISTORIQUE DES CHANGEMENTS
+          <span class="ncm-optional">(Traçabilité ISO 21001)</span>
+        </div>
+
+        <table
+          class="ncm-ac-tbl"
+          *ngIf="selectedNC.historique && selectedNC.historique.length > 0"
+        >
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Ancien statut</th>
+              <th>Nouveau statut</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let h of selectedNC.historique">
+              <!-- ✅ Afficher date et heure complète -->
+              <td class="nc-small">
+                {{ h.dateChangement | date: "dd/MM/yyyy HH:mm:ss" }}
+              </td>
+              <td>
+                <span
+                  class="nc-badge"
+                  [ngClass]="getStatutClass(h.ancienStatut)"
+                >
+                  {{ getStatutLabel(h.ancienStatut) }}
+                </span>
+              </td>
+              <td>
+                <span
+                  class="nc-badge"
+                  [ngClass]="getStatutClass(h.nouveauStatut)"
+                >
+                  {{ getStatutLabel(h.nouveauStatut) }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div
+          *ngIf="!selectedNC.historique || selectedNC.historique.length === 0"
+          class="ncm-empty-ac"
+        >
+          Aucun historique disponible.
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+<!-- ══════════════════════════════════════════ MODAL FORMULAIRE ══════════════════════════════════════════ -->
+<ng-container *ngIf="showFormModal">
+  <div class="ncm-overlay" (click)="closeForm()">
+    <div class="ncm-box ncm-form" (click)="$event.stopPropagation()">
+      <div class="ncm-hdr ncm-hdr-green">
+        <span class="ncm-hdr-title">{{
+          isEdit ? "Modifier la Non-Conformité" : "Nouvelle Non-Conformité"
+        }}</span
+        ><button class="ncm-hdr-close" (click)="closeForm()">✕</button>
+      </div>
+      <div class="ncm-body">
+        <div class="ncm-errors" *ngIf="formErrors.length > 0">
+          <div *ngFor="let e of formErrors">⚠ {{ e }}</div>
+        </div>
+        <div class="ncm-section-title">IDENTIFICATION</div>
+        <div class="ncm-fg full" style="margin-bottom: 12px">
+          <label>Description <span class="ncm-req">*</span></label
+          ><textarea
+            [(ngModel)]="form.description"
+            rows="3"
+            placeholder="Décrivez la non-conformité détectée..."
+          ></textarea>
+        </div>
+        <div class="ncm-grid-3">
+          <div class="ncm-fg">
+            <label>Type <span class="ncm-req">*</span></label
+            ><select [(ngModel)]="form.type">
+              <option value="PRODUIT_SERVICE">Produit / Service</option>
+              <option value="PROCESSUS">Processus</option>
+              <option value="SYSTEME">Système</option>
+              <option value="ENVIRONNEMENT">Environnement</option>
+            </select>
+          </div>
+          <div class="ncm-fg">
+            <label>Nature <span class="ncm-req">*</span></label
+            ><select [(ngModel)]="form.nature">
+              <option value="REELLE">Réelle</option>
+              <option value="POTENTIELLE">Potentielle</option>
+            </select>
+          </div>
+          <div class="ncm-fg">
+            <label>Source <span class="ncm-req">*</span></label
+            ><select [(ngModel)]="form.source">
+              <option value="AUDIT">Audit</option>
+              <option value="RECLAMATION">Réclamation</option>
+              <option value="POINT_CONTROLE">Point contrôle</option>
+              <option value="AUTRE">Autre</option>
+            </select>
+          </div>
+        </div>
+        <div class="ncm-section-title" style="margin-top: 18px">
+          CRITICITÉ &amp; RATTACHEMENT
+        </div>
+        <div class="ncm-grid-3">
+          <div class="ncm-fg">
+            <label>Gravité <span class="ncm-req">*</span></label
+            ><select [(ngModel)]="form.gravite">
+              <option value="MINEURE">🟡 Mineure</option>
+              <option value="MAJEURE">🟠 Majeure</option>
+              <option value="CRITIQUE">🔴 Critique</option>
+            </select>
+          </div>
+          <div class="ncm-fg">
+            <label>Processus concerné</label
+            ><select [(ngModel)]="form.processusId">
+              <option value="">— Sélectionner —</option>
+              <option *ngFor="let p of processus" [value]="p.id">
+                {{ p.code }} — {{ p.nom }}
+              </option>
+            </select>
+          </div>
+          <div class="ncm-fg">
+            <label>Responsable traitement <span class="ncm-req">*</span></label
+            ><select [(ngModel)]="form.responsableId">
+              <option value="">— Sélectionner —</option>
+              <option *ngFor="let r of responsables" [value]="r.id">
+                {{ r.nom }}
+              </option>
+            </select>
+          </div>
+        </div>
+        <div class="ncm-section-title" style="margin-top: 18px">
+          DATES &amp; DÉTECTION
+        </div>
+        <div class="ncm-grid-2">
+          <div class="ncm-fg">
+            <label>Détecté par <span class="ncm-req">*</span></label
+            ><select [(ngModel)]="form.detecteParId">
+              <option value="">— Sélectionner —</option>
+              <option *ngFor="let r of responsables" [value]="r.id">
+                {{ r.nom }}
+              </option>
+            </select>
+          </div>
+          <div class="ncm-fg">
+            <label>Date de détection <span class="ncm-req">*</span></label
+            ><input type="date" [(ngModel)]="form.dateDetection" />
+          </div>
+        </div>
+      </div>
+      <div class="ncm-footer">
+        <button class="ncm-btn-ghost" (click)="closeForm()">Annuler</button
+        ><button class="ncm-btn-green" (click)="saveNC()">✓ Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+<!-- ══════════════════════════════════════════ MODAL SUPPRESSION ══════════════════════════════════════════ -->
+<ng-container *ngIf="showDeleteModal && selectedNC">
+  <div class="ncm-overlay" (click)="closeDelete()">
+    <div class="ncm-box ncm-delete" (click)="$event.stopPropagation()">
+      <div class="ncm-hdr ncm-hdr-red">
+        <span class="ncm-hdr-title">Confirmer la suppression</span
+        ><button class="ncm-hdr-close" (click)="closeDelete()">✕</button>
+      </div>
+      <div class="ncm-del-body">
+        <div class="ncm-del-icon">
+          <svg
+            fill="none"
+            stroke="#ef4444"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            width="28"
+            height="28"
+          >
+            <path
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+        </div>
+        <p class="ncm-del-txt">
+          Voulez-vous vraiment supprimer<br /><strong>{{
+            selectedNC.reference
+          }}</strong>
+          ?
+        </p>
+        <p class="ncm-del-warn">Cette action est irréversible.</p>
+      </div>
+      <div class="ncm-footer">
+        <button class="ncm-btn-ghost" (click)="closeDelete()">Annuler</button
+        ><button class="ncm-btn-red" (click)="confirmDelete()">
+          Supprimer définitivement
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+<!-- ══════════════════════════════════════════ MODAL ANALYSE DES CAUSES ══════════════════════════════════════════ -->
+<ng-container *ngIf="showAnalyseModal && selectedNC">
+  <div class="ncm-overlay" (click)="closeAnalyseModal()">
+    <div class="ncm-box ncm-form" (click)="$event.stopPropagation()">
+      <div class="ncm-hdr ncm-hdr-green">
+        <span class="ncm-hdr-title">{{
+          selectedNC.analyseCause ? "Modifier l'analyse" : "Ajouter une analyse"
+        }}</span
+        ><button class="ncm-hdr-close" (click)="closeAnalyseModal()">✕</button>
+      </div>
+      <div class="ncm-body">
+        <div class="ncm-errors" *ngIf="analyseErrors.length > 0">
+          <div *ngFor="let e of analyseErrors">⚠ {{ e }}</div>
+        </div>
+        <div class="ncm-fg full">
+          <label>Méthode d'analyse <span class="ncm-req">*</span></label
+          ><select [(ngModel)]="analyseForm.methodeAnalyse">
+            <option value="CINQ_M">
+              5M (Matière, Matériel, Main-d'œuvre, Méthode, Milieu)
+            </option>
+            <option value="ISHIKAWA">Diagramme d'Ishikawa (Cause-effet)</option>
+            <option value="CINQ_POURQUOI">5 Pourquoi</option>
+            <option value="AUTRE">Autre método</option>
+          </select>
+        </div>
+        <div class="ncm-fg full" style="margin-top: 12px">
+          <label>Description de l'analyse <span class="ncm-req">*</span></label
+          ><textarea
+            [(ngModel)]="analyseForm.description"
+            rows="5"
+            placeholder="Décrivez les causes racines identifiées..."
+          ></textarea>
+        </div>
+      </div>
+      <div class="ncm-footer">
+        <button class="ncm-btn-ghost" (click)="closeAnalyseModal()">
+          Annuler</button
+        ><button class="ncm-btn-green" (click)="saveAnalyse()">
+          ✓ Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-container>
+
+<!-- ══════════════════════════════════════════ MODAL PICKER PREUVE ══════════════════════════════════════════ -->
+<div class="ncm-overlay" *ngIf="showPreuvePicker">
+  <div
+    class="ncm-box ncm-form"
+    style="width: 500px"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="ncm-hdr ncm-hdr-green">
+      <span class="ncm-hdr-title">Joindre une preuve</span>
+      <button class="ncm-hdr-close" (click)="fermerPreuvePicker()">✕</button>
+    </div>
+    <div class="ncm-body">
+      <!-- Section preuve existante -->
+      <div class="ncm-fg full">
+        <label>Choisir une preuve existante</label>
+        <select [(ngModel)]="selectedPreuveId">
+          <option value="">-- Sélectionner --</option>
+          <option *ngFor="let p of preuvesDisponibles" [value]="p.id">
+            {{ getFileName(p.fichierPath) }}
+          </option>
+        </select>
+      </div>
+
+      <div class="ncm-sep" style="margin: 15px 0">ou</div>
+
+      <!-- Section upload nouveau fichier -->
+      <div class="ncm-fg full">
+        <label>Uploader un nouveau fichier</label>
+        <input type="file" (change)="onPreuveFileSelected($event)" />
+        <textarea
+          placeholder="Description (optionnelle)"
+          [(ngModel)]="uploadPreuveDescription"
+          rows="2"
+          style="margin-top: 10px"
+        ></textarea>
+      </div>
+    </div>
+    <div class="ncm-footer">
+      <button class="ncm-btn-ghost" (click)="fermerPreuvePicker()">
+        Annuler
+      </button>
+      <button class="ncm-btn-green" (click)="enregistrerPreuve()">
+        Enregistrer
+      </button>
+    </div>
+  </div>
+</div>
